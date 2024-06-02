@@ -1,23 +1,25 @@
 /* iCI main program */
-
 #include "../watson/iCI.h"
 using namespace KylinVib;
 using namespace KylinVib::Watson;
+using std::stoul;
+using std::stod;
+using std::string;
 int main(int argc, char ** argv)
 {
-    iCI cores(argv[1]);
-    string_view npstr(argv[2]), qnstr(argv[3]), tolstr(argv[4]), enptstr(argv[5]);
-    for(size_t i=0;i<3;++i)
-    {
-        cores.plus_one();
-    }
-    Timer tm;
-    size_t iter = 0;
-    DenseBase<double> E,Prim;
-    size_t Np = stoul(npstr), Qn = stoul(qnstr);
-    double TolHCI = stod(tolstr), TolPT2 = stod(enptstr);
-    cores.set_tol(TolHCI);
-    cores.set_max_qn(Qn);
+iCI cores(argv[1]);
+string npstr(argv[2]), qnstr(argv[3]), tolstr(argv[4]), enptstr(argv[5]);
+for(size_t i=0;i<3;++i)
+{
+    cores.plus_one();
+}						    
+Timer tm;
+size_t iter = 0;
+DenseBase<double> E,Prim;
+size_t Np = stoul(npstr), Qn = stoul(qnstr);
+double TolHCI = stod(tolstr), TolPT2 = stod(enptstr);
+cores.set_tol(TolHCI);
+cores.set_max_qn(Qn);
     while(iter<=500)
     {
         if(iter==0)

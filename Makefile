@@ -1,4 +1,4 @@
-CXX       = g++8
+CXX       = g++-8
 #CXX       = icpc
 CXXFLAGS  = -std=c++17 -fopenmp -Ofast -Wno-narrowing -O2
 BIN       = ./bin
@@ -26,4 +26,5 @@ ${BIN}/%.o: ./src/%.cpp
 
 ${BIN}/%.a: ${BIN}/%.o
 	chmod +x ./bin/nls.py
+	chmod +x ./bin/hm.py
 	$(CXX) $< -o $@ $(CXXFLAGS) $(MKL)
