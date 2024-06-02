@@ -1,0 +1,59 @@
+/* calculate expectation */
+
+#include <getopt.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include "../holstein/lattice.h"
+
+using namespace klnX;
+
+static const option long_op[]={
+    {"afile",required_argument,NULL,'a'},
+    {"bfile",required_argument,NULL,'b'},
+    {"ofile",required_argument,NULL,'o'},
+    {"help",no_argument,NULL,'h'},
+    {0,0,0,0}
+};
+
+
+int main( int argc, char ** argv )
+{
+    int ch;
+    int op_ind = 0;
+    string fa,fb,fo;
+    while((ch=getopt_long(argc,argv,"a:b:o:h",long_op,&op_ind))!=-1)
+    {
+        switch (ch) 
+        {
+            case 'a':
+                fa = optarg; 
+                break;
+            case 'b':
+                fb = optarg; 
+                break;
+            case 'o':
+                fo = optarg; 
+                break;
+            case 'h':
+                std::cout <<  "Calculate <a|o|b> \n"
+                          <<  "Usage: kln-join.a -a [file a] -b [file b] -o [file op]\n"
+                          <<  "Options:\n"
+                          <<  "--afile,-a                       MPS file a\n"
+                          <<  "--bfile,-b                       MPS file b\n"
+                          <<  "--ofile,-o                       MPO file\n"
+                          <<  "--help,-h                        Show this message" << std::endl;
+                return 0;
+                break;
+            case '?':
+                std::cout << "Unknown Option!\n" << std::endl;
+                break;
+        }
+    }
+    ifstream ifa(fa),ifb(fb),ifo(fo);
+    Holstein::State mpsa = Holstein::State::load(ifa);
+    Holstein::State mpsb = Holstein::State::load(ifb);
+    Holstein::Operator mpo = Holstein::Operator::load(ifo);
+    cout << std::scientific << setprecision(11) << mpo.join(mpsa,mpsb) << endl;
+    return 0;
+}
