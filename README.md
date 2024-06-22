@@ -14,8 +14,8 @@ Ensure that you have installed MKL and NumPy. The dependence must be checked:
 3.  Python3/NumPy
 4.  Linux system
 
-Aftering getting the .zip package (Yes, although this package is open-source, you can either mail to the author or go to 'https://gitee.com/nierenstein' for newest version), run the following commands:
-1. cd kln-x
+Aftering getting the .zip package (Yes, although this package is open-source, you can either mail to the author or go to 'https://github/YiHeXu517/Kylin-V' for newest version), run the following commands:
+1. cd Kylin-V
 2. make
 
 Before making, be sure that the Makefile is correctly written. The original Makefile is author's own. You may need to change the compiler/path inside.
@@ -92,7 +92,7 @@ How to generate such a file?
 
 For VHCI users
 
-1. 'kln-watson-hci.a [input file] [Number of targeted states] [Maximal total quanta] [HCI threshold] [ENPT2 threshold]'
+1. 'kln-watson-hci.a [input file] [Number of targeted states] [Maximal total quanta] [HCI threshold] [ENPT2 threshold]'. An example of input file is './tests/h2co.inp'.
 
 Contact:
 
