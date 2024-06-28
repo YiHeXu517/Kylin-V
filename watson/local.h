@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "timer.h"
+#include "sparse_base.h"
 
 namespace klnX
 {
+    using std::sqrt;
     namespace Watson
     {
         enum class LocalOp
@@ -14,7 +15,7 @@ namespace klnX
             Q3,Q4,Q5,Q6
         };
         // output
-        std::ostream & operator<<(std::ostream & os, LocalOp op)
+        ostream & operator<<(ostream & os, LocalOp op)
         {
             switch (op)
             {
@@ -57,157 +58,157 @@ namespace klnX
             return os;
         }
         // transform to mpo-matrix
-        template<typename ArrType = ArrR<4>>
-        ArrType to_matrix(LocalOp op, INT dim)
+        template<typename ScalarType>
+        SparseBase<ScalarType,4> to_matrix(LocalOp op, size_t dim)
         {
-            ArrType res({1,dim,dim,1});
-            INT lev = 0;
+            SparseBase<ScalarType,4> res({1,dim,dim,1});
+            size_t lev = 0;
             switch (op)
             {
             case LocalOp::I:
                 for(lev=0;lev<dim;++lev)
                 {
-                    res({0,lev,lev,0}) = 1.0;
+                    res.push_back({0,lev,lev,0}, 1.0);
                 }
                 break;
             case LocalOp::Q:
                 for(lev=0;lev<dim-1;++lev)
                 {
-                    res({0,lev,lev+1,0}) = std::sqrt(0.5*lev+0.5);
-                    res({0,lev+1,lev,0}) = std::sqrt(0.5*lev+0.5);
+                    res.push_back({0,lev,lev+1,0}, sqrt(0.5*lev+0.5));
+                    res.push_back({0,lev+1,lev,0}, sqrt(0.5*lev+0.5));
                 }
                 break;
             case LocalOp::P:
                 for(lev=0;lev<dim-1;++lev)
                 {
-                    res({0,lev,lev+1,0}) = std::sqrt(0.5*lev+0.5);
-                    res({0,lev+1,lev,0}) = -1.0*std::sqrt(0.5*lev+0.5);
+                    res.push_back({0,lev,lev+1,0}, sqrt(0.5*lev+0.5));
+                    res.push_back({0,lev+1,lev,0}, -1.0*sqrt(0.5*lev+0.5));
                 }
                 break;
             case LocalOp::QP:
                 for(lev=0;lev<dim-2;++lev)
                 {
-                    res({0,lev,lev+2,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0);
-                    res({0,lev+2,lev,0}) = -1.0*std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0);
+                    res.push_back({0,lev,lev+2,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0));
+                    res.push_back({0,lev+2,lev,0}, -1.0*sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0));
                 }
                 for(lev=0;lev<dim;++lev)
                 {
-                    res({0,lev,lev,0}) = -0.5;
+                    res.push_back({0,lev,lev,0}, -0.5);
                 }
                 break;
             case LocalOp::PQ:
                 for(lev=0;lev<dim-2;++lev)
                 {
-                    res({0,lev,lev+2,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0);
-                    res({0,lev+2,lev,0}) = -1.0*std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0);
+                    res.push_back({0,lev,lev+2,0},sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0));
+                    res.push_back({0,lev+2,lev,0}, -1.0*sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0));
                 }
                 for(lev=0;lev<dim;++lev)
                 {
-                    res({0,lev,lev,0}) = 0.5;
+                    res.push_back({0,lev,lev,0}, 0.5);
                 }
                 break;
             case LocalOp::Q2:
                 for(lev=0;lev<dim-2;++lev)
                 {
-                    res({0,lev,lev+2,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0);
-                    res({0,lev+2,lev,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0);
+                    res.push_back({0,lev,lev+2,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0));
+                    res.push_back({0,lev+2,lev,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0));
                 }
                 for(lev=0;lev<dim;++lev)
                 {
-                    res({0,lev,lev,0}) = 0.5*(2*lev+1.0);
+                    res.push_back({0,lev,lev,0} 0.5*(2*lev+1.0));
                 }
                 break;
             case LocalOp::P2:
                 for(lev=0;lev<dim-2;++lev)
                 {
-                    res({0,lev,lev+2,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0);
-                    res({0,lev+2,lev,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0);
+                    res.push_back({0,lev,lev+2,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0));
+                    res.push_back({0,lev+2,lev,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0));
                 }
                 for(lev=0;lev<dim;++lev)
                 {
-                    res({0,lev,lev,0}) = -0.5*(2*lev+1.0);
+                    res.push_back({0,lev,lev,0}, -0.5*(2*lev+1.0));
                 }
                 break;
             case LocalOp::Q3:
                 for(lev=0;lev<dim-3;++lev)
                 {
-                    res({0,lev,lev+3,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0)*
-                    std::sqrt(0.5*lev+1.5);
-                    res({0,lev+3,lev,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0)*
-                    std::sqrt(0.5*lev+1.5);
+                    res.push_back({0,lev,lev+3,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0)*
+                    sqrt(0.5*lev+1.5));
+                    res.push_back({0,lev+3,lev,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0)*
+                    sqrt(0.5*lev+1.5));
                 }
                 for(lev=0;lev<dim-1;++lev)
                 {
-                    res({0,lev,lev+1,0}) = 0.5*(3*lev+3.0)*std::sqrt(lev*0.5+0.5);
-                    res({0,lev+1,lev,0}) = 0.5*(3*lev+3.0)*std::sqrt(lev*0.5+0.5);
+                    res.push_back({0,lev,lev+1,0}, 0.5*(3*lev+3.0)*sqrt(lev*0.5+0.5));
+                    res.push_back({0,lev+1,lev,0}, 0.5*(3*lev+3.0)*sqrt(lev*0.5+0.5));
                 }
                 break;
             case LocalOp::Q4:
                 for(lev=0;lev<dim-4;++lev)
                 {
-                    res({0,lev,lev+4,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0)*
-                    std::sqrt(0.5*lev+1.5)*std::sqrt(0.5*lev+2.0);
-                    res({0,lev+4,lev,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0)*
-                    std::sqrt(0.5*lev+1.5)*std::sqrt(0.5*lev+2.0);
+                    res.push_back({0,lev,lev+4,0},  sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0)*
+                    sqrt(0.5*lev+1.5)*sqrt(0.5*lev+2.0));
+                    res.push_back({0,lev+4,lev,0},  sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0)*
+                    sqrt(0.5*lev+1.5)*sqrt(0.5*lev+2.0));
                 }
                 for(lev=0;lev<dim-2;++lev)
                 {
-                    res({0,lev,lev+2,0}) = (2*lev+3.0)*std::sqrt(lev*0.5+0.5)*std::sqrt(lev*0.5+1.0);
-                    res({0,lev+2,lev,0}) = (2*lev+3.0)*std::sqrt(lev*0.5+0.5)*std::sqrt(lev*0.5+1.0);
+                    res.push_back({0,lev,lev+2,0}, (2*lev+3.0)*sqrt(lev*0.5+0.5)*sqrt(lev*0.5+1.0));
+                    res.push_back({0,lev+2,lev,0}, (2*lev+3.0)*sqrt(lev*0.5+0.5)*sqrt(lev*0.5+1.0));
                 }
                 for(lev=0;lev<dim;++lev)
                 {
-                    res({0,lev,lev,0}) = 0.25*(6*lev*lev+6*lev+3.0);
+                    res.push_back({0,lev,lev,0}, 0.25*(6*lev*lev+6*lev+3.0));
                 }
                 break;
             case LocalOp::Q5:
                 for(lev=0;lev<dim-5;++lev)
                 {
-                    res({0,lev,lev+5,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0)*
-                    std::sqrt(0.5*lev+1.5)*std::sqrt(0.5*lev+2.0)*std::sqrt(0.5*lev+2.5);
-                    res({0,lev+5,lev,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0)*
-                    std::sqrt(0.5*lev+1.5)*std::sqrt(0.5*lev+2.0)*std::sqrt(0.5*lev+2.5);
+                    res.push_back({0,lev,lev+5,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0)*
+                    sqrt(0.5*lev+1.5)*sqrt(0.5*lev+2.0)*sqrt(0.5*lev+2.5));
+                    res.push_back({0,lev+5,lev,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0)*
+                    sqrt(0.5*lev+1.5)*sqrt(0.5*lev+2.0)*sqrt(0.5*lev+2.5));
                 }
                 for(lev=0;lev<dim-3;++lev)
                 {
-                    res({0,lev,lev+3,0}) = (2.5*lev+5.0)*std::sqrt(lev*0.5+0.5)*std::sqrt(lev*0.5+1.0)
-                    *std::sqrt(lev*0.5+1.5);
-                    res({0,lev+3,lev,0}) = (2.5*lev+5.0)*std::sqrt(lev*0.5+0.5)*std::sqrt(lev*0.5+1.0)
-                    *std::sqrt(lev*0.5+1.5);
+                    res.push_back({0,lev,lev+3,0}, (2.5*lev+5.0)*sqrt(lev*0.5+0.5)*sqrt(lev*0.5+1.0)
+                    *sqrt(lev*0.5+1.5));
+                    res.push_back({0,lev+3,lev,0}, (2.5*lev+5.0)*sqrt(lev*0.5+0.5)*sqrt(lev*0.5+1.0)
+                    *sqrt(lev*0.5+1.5));
                 }
                 for(lev=0;lev<dim-1;++lev)
                 {
-                    res({0,lev,lev+1,0}) = 0.25*(10*lev*lev+20*lev+15.0)*std::sqrt(0.5*lev+0.5);
-                    res({0,lev+1,lev,0}) = 0.25*(10*lev*lev+20*lev+15.0)*std::sqrt(0.5*lev+0.5);
+                    res.push_back({0,lev,lev+1,0}, 0.25*(10*lev*lev+20*lev+15.0)*sqrt(0.5*lev+0.5));
+                    res.push_back({0,lev+1,lev,0}, 0.25*(10*lev*lev+20*lev+15.0)*sqrt(0.5*lev+0.5));
                 }
                 break;
             case LocalOp::Q6:
                 for(lev=0;lev<dim-6;++lev)
                 {
-                    res({0,lev,lev+6,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0)*
-                    std::sqrt(0.5*lev+1.5)*std::sqrt(0.5*lev+2.0)*std::sqrt(0.5*lev+2.5)*
-                    std::sqrt(0.5*lev+3.0);
-                    res({0,lev+6,lev,0}) = std::sqrt(0.5*lev+0.5)*std::sqrt(0.5*lev+1.0)*
-                    std::sqrt(0.5*lev+1.5)*std::sqrt(0.5*lev+2.0)*std::sqrt(0.5*lev+2.5)*
-                    std::sqrt(0.5*lev+3.0);
+                    res.push_back({0,lev,lev+6,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0)*
+                    sqrt(0.5*lev+1.5)*sqrt(0.5*lev+2.0)*sqrt(0.5*lev+2.5)*
+                    sqrt(0.5*lev+3.0));
+                    res.push_back({0,lev+6,lev,0}, sqrt(0.5*lev+0.5)*sqrt(0.5*lev+1.0)*
+                    sqrt(0.5*lev+1.5)*sqrt(0.5*lev+2.0)*sqrt(0.5*lev+2.5)*
+                    sqrt(0.5*lev+3.0));
                 }
                 for(lev=0;lev<dim-4;++lev)
                 {
-                    res({0,lev,lev+4,0}) = (3.0*lev+7.5)*std::sqrt(lev*0.5+0.5)*std::sqrt(lev*0.5+1.0)
-                    *std::sqrt(lev*0.5+1.5)*std::sqrt(lev*0.5+2.0);
-                    res({0,lev+4,lev,0}) = (3.0*lev+7.5)*std::sqrt(lev*0.5+0.5)*std::sqrt(lev*0.5+1.0)
-                    *std::sqrt(lev*0.5+1.5)*std::sqrt(lev*0.5+2.0);
+                    res.push_back({0,lev,lev+4,0}, (3.0*lev+7.5)*sqrt(lev*0.5+0.5)*sqrt(lev*0.5+1.0)
+                    *sqrt(lev*0.5+1.5)*sqrt(lev*0.5+2.0));
+                    res.push_back({0,lev+4,lev,0}, (3.0*lev+7.5)*sqrt(lev*0.5+0.5)*sqrt(lev*0.5+1.0)
+                    *sqrt(lev*0.5+1.5)*sqrt(lev*0.5+2.0));
                 }
                 for(lev=0;lev<dim-2;++lev)
                 {
-                    res({0,lev,lev+2,0}) = 0.25*(15*lev*lev+45*lev+45.0)*std::sqrt(0.5*lev+0.5)
-                    *std::sqrt(0.5*lev+1.0);
-                    res({0,lev+2,lev,0}) = 0.25*(15*lev*lev+45*lev+45.0)*std::sqrt(0.5*lev+0.5)
-                    *std::sqrt(0.5*lev+1.0);
+                    res.push_back({0,lev,lev+2,0}, 0.25*(15*lev*lev+45*lev+45.0)*sqrt(0.5*lev+0.5)
+                    *sqrt(0.5*lev+1.0));
+                    res.push_back({0,lev+2,lev,0}, 0.25*(15*lev*lev+45*lev+45.0)*sqrt(0.5*lev+0.5)
+                    *sqrt(0.5*lev+1.0));
                 }
                 for(lev=0;lev<dim;++lev)
                 {
-                    res({0,lev,lev,0}) = 0.125*(20*lev*lev*lev+30*lev*lev+40*lev+15.0);
+                    res.push_back({0,lev,lev,0}, 0.125*(20*lev*lev*lev+30*lev*lev+40*lev+15.0));
                 }
                 break;
             default:
@@ -273,5 +274,6 @@ namespace klnX
             }
             return res;
         }
+        // 
     }
 }
