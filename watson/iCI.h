@@ -10,11 +10,6 @@
 #include <unordered_map>
 #include <omp.h>
 #include <cmath>
-#define MKL_INT size_t
-#define MKL_Complex16 std::complex<double>
-#include <mkl.h>
-#include <mkl_spblas.h>
-#include <mkl_solvers_ee.h>
 #include "timer.h"
 
 namespace KylinVib

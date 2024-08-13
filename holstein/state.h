@@ -5,7 +5,7 @@
 
 #include "product.h"
 
-namespace klnX
+namespace KylinVib
 {
     namespace Holstein
     {

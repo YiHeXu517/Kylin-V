@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include "../holstein/lattice.h"
 
-using namespace klnX;
+using namespace KylinVib;
 
 static const option long_op[]={
     {"afile",required_argument,NULL,'a'},
@@ -67,7 +67,8 @@ int main( int argc, char ** argv )
     Holstein::Operator mpsa = Holstein::Operator::load(ifa);
     Holstein::Operator mpsb = Holstein::Operator::load(ifb);
     mpsa *= scla;
-    mpsa += mpsb * sclb;
+    mpsb *= sclb;
+    mpsa += mpsb; 
     ofstream ofo(fo);
     mpsa.save(ofo);
     return 0;

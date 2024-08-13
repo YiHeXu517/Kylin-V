@@ -6,7 +6,7 @@
 #include "product.h"
 #include "operator.h"
 
-namespace klnX
+namespace KylinVib
 {
     namespace Holstein
     {

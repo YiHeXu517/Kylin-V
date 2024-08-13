@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include "../holstein/tdvp.h"
 
-using namespace klnX;
+using namespace KylinVib;
 static const option long_op[]={
     {"wavefunc",required_argument,NULL,'w'},
     {"operator",required_argument,NULL,'o'},

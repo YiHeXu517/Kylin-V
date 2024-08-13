@@ -38,7 +38,7 @@
 #include <utility>
 #include <vector>
 
-namespace klnX
+namespace KylinVib
 {
     /* some common types in codes */
     typedef MKL_INT INT;

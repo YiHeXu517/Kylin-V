@@ -5,7 +5,7 @@
 #include "../holstein/lattice.h"
 #include "../holstein/svd.h"
 
-using namespace klnX;
+using namespace KylinVib;
 
 static const option long_op[]={
     {"input",required_argument,NULL,'i'},

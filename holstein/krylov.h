@@ -5,7 +5,7 @@
 
 #include "exponential.h"
 
-namespace klnX
+namespace KylinVib
 {
     namespace Holstein
     {

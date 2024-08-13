@@ -6,7 +6,7 @@
 #include "input.h"
 #include "local.h"
 
-namespace klnX
+namespace KylinVib
 {
     namespace Holstein
     {

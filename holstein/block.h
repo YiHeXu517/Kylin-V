@@ -5,7 +5,7 @@
 
 #include "../util/timer.h"
 
-namespace klnX
+namespace KylinVib
 {
     using std::array;
     using std::accumulate;

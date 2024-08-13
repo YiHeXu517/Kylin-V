@@ -5,7 +5,7 @@
 
 #include "allocation.h"
 
-namespace klnX
+namespace KylinVib
 {
     using std::map;
     using std::string_view;    

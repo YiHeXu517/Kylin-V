@@ -4,9 +4,15 @@
 
 #include <iostream>
 #include <algorithm>
+#include <complex>
 #include <numeric>
 #include <cstring>
 #include <utility>
+#define MKL_INT size_t
+#define MKL_Complex16 std::complex<double>
+#include <mkl.h>
+#include <mkl_spblas.h>
+#include <mkl_solvers_ee.h>
 
 namespace KylinVib
 {
@@ -17,6 +23,7 @@ namespace KylinVib
     using std::free;
     using std::endl;
     using std::memcpy;
+    using std::move;
     namespace Watson
     {
         template<typename ScalarType>

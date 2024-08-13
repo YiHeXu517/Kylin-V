@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include "../holstein/lattice.h"
 
-using namespace klnX;
+using namespace KylinVib;
 
 static const option long_op[]={
     {"afile",required_argument,NULL,'a'},

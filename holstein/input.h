@@ -5,7 +5,7 @@
 
 #include "../util/timer.h"
 
-namespace klnX
+namespace KylinVib
 {
     using std::vector;
     using std::ifstream;

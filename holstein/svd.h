@@ -6,7 +6,7 @@
 #include <float.h>
 #include "tensor.h"
 
-namespace klnX
+namespace KylinVib
 {
     namespace Holstein
     {

@@ -5,7 +5,7 @@
 
 #include "svd.h"
 
-namespace klnX
+namespace KylinVib
 {
     namespace Holstein
     {

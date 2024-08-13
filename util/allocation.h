@@ -11,7 +11,7 @@
 
 #include "global.h"
 
-namespace klnX
+namespace KylinVib
 {
     using std::malloc;
     using std::calloc;

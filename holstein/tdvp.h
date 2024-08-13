@@ -6,7 +6,7 @@
 #include "lattice.h"
 #include "krylov.h"
 
-namespace klnX
+namespace KylinVib
 {
     namespace Holstein
     {

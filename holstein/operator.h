@@ -5,7 +5,7 @@
 
 #include "state.h"
 
-namespace klnX
+namespace KylinVib
 {
     namespace Holstein
     {
