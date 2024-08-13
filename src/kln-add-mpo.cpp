@@ -27,20 +27,20 @@ int main( int argc, char ** argv )
     double scla,sclb;
     while((ch=getopt_long(argc,argv,"a:b:x:y:o:h",long_op,&op_ind))!=-1)
     {
-        switch (ch) 
+        switch (ch)
         {
             case 'a':
-                fa = optarg; 
+                fa = optarg;
                 break;
             case 'b':
-                fb = optarg; 
+                fb = optarg;
                 break;
             case 'x':
-                fx = optarg; 
+                fx = optarg;
                 scla = std::stod(fx);
                 break;
             case 'y':
-                fy = optarg; 
+                fy = optarg;
                 sclb = std::stod(fy);
                 break;
             case 'o':
@@ -48,10 +48,10 @@ int main( int argc, char ** argv )
                 break;
             case 'h':
                 std::cout <<  "Calculate (|a> + |b>)*s \n"
-                          <<  "Usage: kln-add.a -a [file a] -b [file b] -s [scl] -o [ofile]\n"
+                          <<  "Usage: kln-add-mpo.a -a [file a] -b [file b] -s [scl] -o [ofile]\n"
                           <<  "Options:\n"
-                          <<  "--afile,-a                       MPS file a\n"
-                          <<  "--bfile,-b                       MPS file b\n"
+                          <<  "--afile,-a                       MPO file a\n"
+                          <<  "--bfile,-b                       MPO file b\n"
                           <<  "--scalea,-x                      re-scale a\n"
                           <<  "--scaleb,-y                      re-scale b\n"
                           <<  "--ofile,-o                       result MPS file\n"
