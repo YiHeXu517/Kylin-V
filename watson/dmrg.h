@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "algebra.h"
+#include "state.h"
 
 namespace KylinVib
 {
@@ -17,7 +17,7 @@ namespace KylinVib
 
             /// read hamiltonian terms from input file
             DMRG(char const * fname, size_t nmode, size_t nocc)
-            : State_(nmode,{1,nocc,1}), BondInfo_(nmode-1)
+            : State_(nmode)
             {
                 ifstream ifs(fname);
                 vector<SparseBase<double,4>> Tmps(nmode,{1,nocc,nocc,1});
@@ -69,12 +69,13 @@ namespace KylinVib
                 Ham_ = move(Tmps);
                 for(size_t i=0;i<nmode;++i)
                 {
-                    State_[i].push_back({0,0,0},1.0);
-                    if(i!=nmode-1)
-                    {
-                        BondInfo_[i].push_back(0);
-                    }
+                    State_.set_shapes(i)[0] = 1;
+                    State_.set_shapes(i)[1] = 1;
+                    State_.set_shapes(i)[2] = 1;
+                    DenseBase<double> ri(1); ri.ptr()[0] = 1.0;
+                    State_[i] = move(ri);
                 }
+                State_.print();
             }
 
             ~DMRG() = default;
@@ -106,15 +107,8 @@ namespace KylinVib
 
             private:
 
-            vector<SparseBase<double,4>> Ham_;
-
-            vector<SparseBase<double,3>> State_;
-
-            vector<vector<size_t>> BondInfo_;
-
-            vector<SparseBase<double,3>> EnvL_;
-
-            vector<SparseBase<double,3>> EnvR_;
+            NaiveMPO Ham_;
+            MPS State_;
         };
     }
 }
