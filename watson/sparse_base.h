@@ -14,6 +14,8 @@ namespace KylinVib
     using std::copy;
     using std::pow;
     using std::vector;
+    using std::find;
+    using std::distance;
     namespace Watson
     {
         template<typename ScalarType, unsigned Rank>
@@ -72,6 +74,24 @@ namespace KylinVib
                 shape_ = move(r.shape_);
                 indices_ = move(r.indices_);
                 values_ = move(r.values_);
+                return *this;
+            }
+            SparseBase<ScalarType,Rank> & operator+=(SparseBase<ScalarType,Rank> const & r)
+            {
+                for(size_t i=0;i<this->nnz();++i)
+                {
+                    auto it = find(indices_.begin(),indices_.end(),r.indices_[i]);
+                    if(it==indices_.end())
+                    {
+                        indices_.push_back(r.indices_[i]);
+                        values_.push_back(r.values_[i]);
+                    }
+                    else
+                    {
+                        size_t pos = distance(indices_.begin(),it);
+                        values_[pos] += r.values_[i];
+                    }
+                }
                 return *this;
             }
             SparseBase<ScalarType,Rank> & operator*=(double coeff)

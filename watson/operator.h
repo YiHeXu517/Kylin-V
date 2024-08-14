@@ -21,7 +21,7 @@ namespace KylinVib
         enum class LocalOp
         {
             I,Q,P,QP,PQ,Q2,P2,
-            Q3,Q4,Q5,Q6
+            Q3,Q4,Q5,Q6,Np
         };
         // output
         ostream & operator<<(ostream & os, LocalOp op)
@@ -60,6 +60,9 @@ namespace KylinVib
                 break;
             case LocalOp::Q6:
                 os << "Q6";
+                break;
+            case LocalOp::Np:
+                os << "Np";
                 break;
             default:
                 break;
@@ -217,6 +220,12 @@ namespace KylinVib
                 for(lev=0;lev<dim;++lev)
                 {
                     res.push_back({0,lev,lev,0}, 0.125*(20*lev*lev*lev+30*lev*lev+40*lev+15.0));
+                }
+                break;
+            case LocalOp::Np:
+                for(lev=0;lev<dim;++lev)
+                {
+                    res.push_back({0,lev,lev,0}, lev*1.0);
                 }
                 break;
             default:
