@@ -47,7 +47,7 @@ int main( int argc, char ** argv )
     WatsonDMRG::xMPO ham = WatsonDMRG::xMPO::load("tot.H");
     INT L = ham.nsite();
     INT d = ham[0].shape()[1];
-    WatsonDMRG::Lanczos driver(5,5,1,5,ham);
+    WatsonDMRG::Lanczos driver(50,24,12,5,ham);
     driver.impl();
     now = std::time(nullptr);
     std::cout << "End is: " << std::ctime(&now) << std::endl;
