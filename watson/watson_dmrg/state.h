@@ -290,6 +290,21 @@ namespace KylinVib
                     tt_[i] = std::move(Alg::transpose<3>(ri,{0,2,1}));
                 }
             }
+            void one_initialize(INT Nphys, INT bd)
+            {
+                INT Ns = tt_.size();
+                for(INT i=0;i<Ns;++i)
+                {
+                    INT Blef = (i==0) ? 1 : bd;
+                    INT Brig = (i==Ns-1) ? 1 : bd;
+                    ArrR<3> ri({Blef,Nphys,Brig});
+                    for(INT j=0;j<ri.size();++j)
+                    {
+                        ri.ptr()[j] = 1.0;
+                    }
+                    tt_[i] = std::move(ri);
+                }
+            }
             // initialize MPS with excitation map
             void initialize(std::map<INT,INT> const & excs, INT Nphys)
             {

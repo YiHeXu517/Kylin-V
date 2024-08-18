@@ -693,5 +693,119 @@ namespace KylinVib
                 return res;
             }
         };
+
+        // sparse tensor class
+        template<INT N>
+        class SparR : public std::vector<std::array<INT,N>>
+        {
+            public:
+            SparR() = default;
+            SparR(SparR<N> const & r)
+            : shape_(r.shape_), values_(r.values_), std::vector<std::array<INT,N>>(r)
+            {
+
+            }
+            SparR<N> & operator=(SparR<N> const & r)
+            {
+                shape_ = r.shape_;
+                values_ = r.values_;
+                std::vector<std::array<INT,N>>::operator=(r);
+                return *this;
+            }
+            SparR(SparR<N> && r)
+            : shape_(std::move(r.shape_)), values_(std::move(r.values_)), 
+            std::vector<std::array<INT,N>>(std::move(r))
+            {
+
+            }
+            SparR<N> & operator=(SparR<N> && r)
+            {
+                shape_ = std::move(r.shape_);
+                values_ = std::move(r.values_);
+                std::vector<std::array<INT,N>>::operator=(std::move(r));
+                return *this;
+            }
+            SparR(std::array<INT,N> const & Sp, INT nnz = 0)
+            : shape_(Sp), values_(nnz), std::vector<std::array<INT,N>>(nnz)
+            {
+
+            }
+            SparR(std::initializer_list<INT> Sp, INT nnz = 0)
+            : values_(nnz), std::vector<std::array<INT,N>>(nnz)
+            {
+                std::copy(Sp.begin(),Sp.end(),shape_.begin());
+            }
+            SparR(ArrR<N> const & r)
+            : shapes_(r.shape())
+            {
+                for(INT i=0;i<r.size();++i)
+                {
+                    if(std::abs(r.cptr()[i])<=1e-13)
+                    {
+                        continue;
+                    }
+                    std::array<INT,N> idx;
+                    for(INT j=0;j<N;++j)
+                    {
+                        idx[j] = i / r.dist()[j] % r.shape()[j];
+                    }
+                    this->push_back(idx);
+                    values_.push_back(r.cptr()[i]);
+                }
+            }
+            std::array<INT,N> const & shape() const
+            {
+                return shape_;
+            }
+            std::vector<double> const & values() const
+            {
+                return values_;
+            }
+            std::vector<double> & values()
+            {
+                return values_;
+            }
+            SparR<N> & operator+=(SparR<N> const & r)
+            {
+                for(INT i=0;i<r.size();++i)
+                {
+                    auto fd = std::find(this->begin(),this->end(),r[i]);
+                    if(fd==this->end())
+                    {
+                        this->push_back(r[i]);
+                        values_.push_back(r.values_[i]);
+                    }
+                    else
+                    {
+                        INT pos = std::distance(this->begin(),fd);
+                        values_[pos] += r.values_[i];
+                    }
+                }
+                return *this;
+            }
+            SparR<N> & operator*=(double Val)
+            {
+                for(INT i=0;i<this->size();++i)
+                {
+                    values_[i] *= Val;
+                }
+                return *this;
+            }
+            void add_elem(std::array<INT,N> const & Idx, double Val)
+            {
+                this->push_back(Idx);
+                values_.push_back(Val);
+            }
+            void add_elem(std::initializer_list<INT> Idx, double Val)
+            {
+                this->emplace_back(Idx);
+                values_.push_back(Val);
+            }
+            ~SparR() = default;
+
+            private:
+            std::array<INT,N> shape_;
+            std::vector<double> values_;
+        };
     }
 }

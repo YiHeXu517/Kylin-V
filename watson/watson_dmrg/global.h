@@ -23,7 +23,7 @@
 #ifdef MKL_INT
 #undef MKL_INT
 #endif
-#define MKL_INT int
+#define MKL_INT int64_t
 #define MKL_Complex16 std::complex<double>
 #include <mkl.h>
 #include <mkl_spblas.h>

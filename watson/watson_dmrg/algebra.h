@@ -780,6 +780,91 @@ namespace KylinVib
                 res = Alg::transpose<3>(res,{1,0,2});
                 return res;
             }
+
+            template<INT N>
+            SparR<N> transpose(SparR<N> const & r, Brace ax)
+            {
+                std::array<INT,N> rsp;
+                for(INT i=0;i<N;++i)
+                {
+                    rsp[i] = r.shape()[*(ax.begin()+i)];
+                }
+                SparR<N> res(rsp,r.size());
+                for(INT i=0;i<r.size();++i)
+                {
+                    std::array<INT,N> idx;
+                    for(INT j=0;j<N;++j)
+                    {
+                        idx[j] = r[i][*(ax.begin()+j)];
+                    }
+                    res[i] = idx;
+                    res.values()[i] = r.values()[i];
+                }
+                return res;
+            }
+
+            // mm product of two sparses
+            template<INT N1, INT N2, INT nc>
+            SparR<N1+N2-2*nc> gmm(SparR<N1> const & m1, SparR<N2> const & m2)
+            {
+                INT nz1 = m1.size(), nz2 = m2.size(), nth;
+                std::array<INT,N1+N2-2*nc> rsp;
+                for(INT i=0;i<N1-nc;++i)
+                {
+                    rsp[i] = m1.shape()[i];
+                }
+                for(INT i=0;i<N2-nc;++i)
+                {
+                    rsp[ii+N1-nc] = m2.shape()[i+nc];
+                }
+                for(INT i=0;i<nc;++i)
+                {
+                    if(m1.shape()[i+N1-nc] != m2.shape()[i])
+                    {
+                        std::cout << "Sparse shape mismatch!" << std::endl;
+                        std::exit(1);
+                    }
+                }
+                #pragma omp parallel
+                nth = omp_get_num_threads()
+
+                std::vector<SparR<N1+N2-2*nc>> ress(nth,rsp);
+
+                #pragma omp parallel for
+                for(INT i=0;i<nz1*nz2;++i)
+                {
+                    INT i1 = i / nz2, i2 = i % nz2;
+                    char IsMatch = 'y';
+                    for(INT j=0;j<nc;++j)
+                    {
+                        if(m1[i1][j+N1-nc] != m2[i2][j])
+                        {
+                            IsMatch = 'n';
+                            break;
+                        }
+                    }
+                    std::array<INT,N1+N2-nc> idx;
+                    if(IsMatch=='y')
+                    {
+                        for(INT j=0;j<N1-nc;++j)
+                        {
+                            idx[j] = m1.shape()[j];
+                        }
+                        for(INT j=0;j<N2-nc;++j)
+                        {
+                            idx[j+N1-nc] = m2.shape()[j+nc];
+                        }
+                        INT ThreadID = omp_get_thread_num();
+                        ress[ThreadID].add_elem(idx,m1.values()[i1]*m2.values()[i2]);
+                    }
+                }
+                SparR<N1+N2-2*nc> res(rsp);
+                for(INT i=0;i<nth;++i)
+                {
+                    res += ress[i];
+                }
+                return res;
+            }
         };
     }
 }

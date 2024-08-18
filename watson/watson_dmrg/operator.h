@@ -226,6 +226,24 @@ namespace KylinVib
                 }
                 return res;
             }
+            // apply bond-1 single operator to wavefunction
+            xMPS apply_op_single(xMPS const & s) const
+            {
+                INT Ns = tt_.size();
+                xMPS res(Ns);
+                for(INT i=0;i<Ns;++i)
+                {
+                    INT aj1 = s.at(i).shape()[0], sig = s.at(i).shape()[1], aj = s.at(i).shape()[2];
+                    ArrR<3> ri(s.at(i).shape());
+                    for(INT j=0;j<aj1;++j)
+                    {
+                        cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,sig,aj,sig,
+                        1.0,tt_[i].cptr(),sig,s.at(i).cptr()+j*sig*aj,aj,0.0,ri.ptr()+j*sig*aj,aj);
+                    }
+                    res[i] = std::move(ri);
+                }
+                return res;
+            }
 
             INT max_bond() const
             {
@@ -257,7 +275,7 @@ namespace KylinVib
             {
                 INT Ns;
                 std::ifstream ifs(fn);
-                if(!ifs.is_open()) { std::cout << "Fail to open MPO file!" << std::endl; }
+                if(!ifs.is_open()) { std::cout << "Fail to open MPO file!" << std::endl; std::exit(1); }
                 ifs.read(reinterpret_cast<char*>(&Ns), sizeof(INT));
                 xMPO res(Ns);
                 for(INT i=0;i<Ns;++i)
