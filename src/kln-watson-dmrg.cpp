@@ -52,6 +52,7 @@ int main( int argc, char ** argv )
     xMPO ham = xMPO::load(fmpo.c_str());
     INT L = ham.nsite();
     INT d = ham[0].shape()[1];
+<<<<<<< HEAD
 
     std::vector<xMPO> ops(L);
     for(INT i=0;i<L;++i)
@@ -70,5 +71,11 @@ int main( int argc, char ** argv )
     driver.impl(ops);
 //    now = std::time(nullptr);
 //    std::cout << "End is: " << std::ctime(&now) << std::endl;
+=======
+    WatsonDMRG::Lanczos driver(50,24,12,5,ham);
+    driver.impl();
+    now = std::time(nullptr);
+    std::cout << "End is: " << std::ctime(&now) << std::endl;
+>>>>>>> 7b1ab304d72e6c75515eb90e8d830cf76a68921a
     return 0;
 }

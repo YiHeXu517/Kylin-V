@@ -30,6 +30,7 @@ namespace KylinVib
 			void impl()
 			{
 				INT L = mpo_.nsite();
+                ArrR<1> Enes({Nstates_}), CurEnes({Nstates_});
 				for(INT mac=0;mac<Macro_;++mac)
 				{
 					std::cout << "Lanczos Macro Iteration " << mac+1 << std::endl;
@@ -79,7 +80,19 @@ namespace KylinVib
 						std::cout << "Eig-state " << i+1
 						<< " = " << Valc << std::endl;
 						StateAverageCoeff.ptr()[i] = 1.0;
+                        CurEnes({i}) = EigHm({i,i});
 					}
+                    // whether to converge
+                    double EneDiff = Alg::norm<1>(CurEnes-Enes) / Nstates_;
+                    if(EneDiff<0.1)
+                    {
+                        std::cout << "<E> converged." << std::endl;
+                        break;
+                    }
+                    else
+                    {
+                        Enes = CurEnes;
+                    }
 					ArrR<2> EigVecHam = Alg::gmm<2,2,1>(Us2c,Hmc,CblasTrans,CblasNoTrans);
 					StateAverageCoeff = Alg::gmm<2,2,1>(EigVecHam,StateAverageCoeff);
 					Vm_[0] *= StateAverageCoeff.cptr()[0];
