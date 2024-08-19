@@ -46,36 +46,12 @@ int main( int argc, char ** argv )
     }
     // electronic states
  
-//    std::time_t now = std::time(nullptr);
-//    std::cout << "Start is: " << std::ctime(&now) << std::endl;
 
     xMPO ham = xMPO::load(fmpo.c_str());
     INT L = ham.nsite();
     INT d = ham[0].shape()[1];
-<<<<<<< HEAD
-
-    std::vector<xMPO> ops(L);
-    for(INT i=0;i<L;++i)
-    {
-        std::vector<LocalOp> labs(L);
-        std::for_each(labs.begin(),labs.end(),[](LocalOp & x){ x = LocalOp::I;});
-        labs[i] = LocalOp::Q;
-        xMPO tmpi(L);
-        for(INT j=0;j<L;++j)
-        {
-            tmpi[j] = to_matrix<ArrR<4>>(labs[j],d);
-        }
-        ops[i] = tmpi;
-    }
-    Lanczos driver(ham,std::stoi(fnst),5,ops.size());
-    driver.impl(ops);
-//    now = std::time(nullptr);
-//    std::cout << "End is: " << std::ctime(&now) << std::endl;
-=======
-    WatsonDMRG::Lanczos driver(50,24,12,5,ham);
-    driver.impl();
-    now = std::time(nullptr);
-    std::cout << "End is: " << std::ctime(&now) << std::endl;
->>>>>>> 7b1ab304d72e6c75515eb90e8d830cf76a68921a
+    xMPS vi(L); std::map<INT,INT> excs; vi.initialize(excs,d);
+    Lanczos driver(ham,vi,1e-3,1000,std::stoi(fnst));
+    driver.impl_dmrg(10);
     return 0;
 }

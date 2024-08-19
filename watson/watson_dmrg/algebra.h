@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <unordered_map>
 #include "dense.h"
 
 namespace KylinVib
@@ -782,7 +783,7 @@ namespace KylinVib
             }
 
             template<INT N>
-            SparR<N> transpose(SparR<N> const & r, Brace ax)
+            static SparR<N> transpose(SparR<N> const & r, Brace ax)
             {
                 std::array<INT,N> rsp;
                 for(INT i=0;i<N;++i)
@@ -805,7 +806,7 @@ namespace KylinVib
 
             // mm product of two sparses
             template<INT N1, INT N2, INT nc>
-            SparR<N1+N2-2*nc> gmm(SparR<N1> const & m1, SparR<N2> const & m2)
+            static SparR<N1+N2-2*nc> gmm(SparR<N1> const & m1, SparR<N2> const & m2)
             {
                 INT nz1 = m1.size(), nz2 = m2.size(), nth;
                 std::array<INT,N1+N2-2*nc> rsp;
@@ -815,18 +816,20 @@ namespace KylinVib
                 }
                 for(INT i=0;i<N2-nc;++i)
                 {
-                    rsp[ii+N1-nc] = m2.shape()[i+nc];
+                    rsp[i+N1-nc] = m2.shape()[i+nc];
                 }
                 for(INT i=0;i<nc;++i)
                 {
                     if(m1.shape()[i+N1-nc] != m2.shape()[i])
                     {
                         std::cout << "Sparse shape mismatch!" << std::endl;
+                        m1.print();
+                        m2.print();
                         std::exit(1);
                     }
                 }
                 #pragma omp parallel
-                nth = omp_get_num_threads()
+                nth = omp_get_num_threads();
 
                 std::vector<SparR<N1+N2-2*nc>> ress(nth,rsp);
 
@@ -843,25 +846,44 @@ namespace KylinVib
                             break;
                         }
                     }
-                    std::array<INT,N1+N2-nc> idx;
+                    std::array<INT,N1+N2-2*nc> idx;
                     if(IsMatch=='y')
                     {
                         for(INT j=0;j<N1-nc;++j)
                         {
-                            idx[j] = m1.shape()[j];
+                            idx[j] = m1[i1][j];
                         }
                         for(INT j=0;j<N2-nc;++j)
                         {
-                            idx[j+N1-nc] = m2.shape()[j+nc];
+                            idx[j+N1-nc] = m2[i2][j+nc];
                         }
                         INT ThreadID = omp_get_thread_num();
                         ress[ThreadID].add_elem(idx,m1.values()[i1]*m2.values()[i2]);
                     }
                 }
                 SparR<N1+N2-2*nc> res(rsp);
+                std::unordered_map<INT,INT> ResPos;
+                std::array<INT,N1+N2-2*nc> ResDists;
+                ResDists[N1+N2-2*nc-1] = 1;
+                for(INT i=1;i<N1+N2-2*nc;++i)
+                {
+                    ResDists[N1+N2-2*nc-i-1] = ResDists[N1+N2-2*nc-i] * res.shape()[N1+N2-2*nc-i];
+                }
                 for(INT i=0;i<nth;++i)
                 {
-                    res += ress[i];
+                    for(INT j=0;j<ress[i].size();++j)
+                    {
+                        INT pos = std::inner_product(ResDists.begin(),ResDists.end(),ress[i][j].begin(),0);
+                        if(ResPos.find(pos)!=ResPos.end())
+                        {
+                            res.values()[ResPos[pos]] += ress[i].values()[j];
+                        }
+                        else
+                        {
+                            ResPos[pos] = res.size();
+                            res.add_elem(ress[i][j],ress[i].values()[j]);
+                        }
+                    }
                 }
                 return res;
             }

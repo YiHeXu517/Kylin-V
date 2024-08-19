@@ -736,7 +736,7 @@ namespace KylinVib
                 std::copy(Sp.begin(),Sp.end(),shape_.begin());
             }
             SparR(ArrR<N> const & r)
-            : shapes_(r.shape())
+            : shape_(r.shape())
             {
                 for(INT i=0;i<r.size();++i)
                 {
@@ -798,8 +798,28 @@ namespace KylinVib
             }
             void add_elem(std::initializer_list<INT> Idx, double Val)
             {
-                this->emplace_back(Idx);
+                std::array<INT,N> Idxr;
+                std::copy(Idx.begin(),Idx.end(),Idxr.begin());
+                this->push_back(Idxr);
                 values_.push_back(Val);
+            }
+            void print() const
+            {
+                std::cout << "Shape:[";
+                for(INT i=0;i<N-1;++i)
+                {
+                    std::cout << shape_[i] << ",";
+                }
+                std::cout << shape_[N-1] << "]" << std::endl;
+                for(INT i=0;i<this->size();++i)
+                {
+                    std::cout << "[";
+                    for(INT j=0;j<N-1;++j)
+                    {
+                        std::cout << (*this)[i][j] << ",";
+                    }
+                    std::cout << (*this)[i][N-1] << "] | " << values_[i] << std::endl;
+                }
             }
             ~SparR() = default;
 
