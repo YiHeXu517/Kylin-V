@@ -197,6 +197,11 @@ namespace KylinVib
                 Ord_[r] = OrdRef_.size();
                 OrdRef_.push_back(r);
             }
+            void clear_basis()
+            {
+                Ord_.clear();
+                OrdRef_.clear();
+            }
 
             /// generate total Hamiltonian to triplets
             void make_total()

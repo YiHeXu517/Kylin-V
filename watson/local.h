@@ -1,12 +1,12 @@
-/* watson hamiltonian local operators with exact high-lying configurations */
+/* All kinds of local operators defined here */
 
 #pragma once
 
-#include "operator.h"
+#include "linalg.h"
 
 namespace KylinVib
 {
-    namespace WatsonDMRG
+    namespace Watson
     {
         enum class LocalOp
         {
@@ -57,11 +57,11 @@ namespace KylinVib
             return os;
         }
         // transform to mpo-matrix
-        template<typename ArrType = ArrR<4>>
-        ArrType to_matrix(LocalOp op, INT dim)
+        template<typename ArrType = Dense<double,4>>
+        ArrType to_matrix(LocalOp op, size_t dim)
         {
             ArrType res({1,dim,dim,1});
-            INT lev = 0;
+            size_t lev = 0;
             switch (op)
             {
             case LocalOp::I:
