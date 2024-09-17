@@ -32,7 +32,22 @@ int main( int argc, char ** argv )
   MPO<double> ham_shift = ham + Eyes;
   ham_shift.canon();
   MPS<double> hamst = ham_shift.diag_state();
-  std::vector<LabArr<double,2>> liss = hamst.dominant(Ncfg);
+  std::vector<LabArr<double,2>> liss = hamst.dominant(Ncfg*Ns*d);
+  std::vector<std::tuple<size_t,double>> tups(liss.size());
+  #pragma omp parallel for
+  for(size_t i=0;i<liss.size();++i)
+  {   
+    tups[i] = std::make_tuple(i,liss[i].norm()) ;
+  }
+  std::sort(tups.begin(),tups.end(),
+  [&tups](std::tuple<size_t,double> x1, std::tuple<size_t,double> x2){
+  return std::get<1>(x1)>std::get<1>(x2);});
+  std::vector<LabArr<double,2>> res(Ncfg);
+  for(size_t i=0;i<Ncfg;++i)
+  {
+    res[i] = liss[std::get<0>(tups[i])];
+  }
+  liss = std::move(res);
 
 iCI cores(argv[1]);
 std::string tolstr(argv[6]), enptstr(argv[7]);
