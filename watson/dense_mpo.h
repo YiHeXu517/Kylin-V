@@ -89,10 +89,10 @@ namespace KylinVib
                 (*this)[i-1] = prod<Type,4,2,1>((*this)[i-1],lef,{3},{0});
             }
         }
-        double join(MPS<Type> const & s1, MPS<Type> const & s2) const
+        Type join(MPS<Type> const & s1, MPS<Type> const & s2) const
         {
             size_t ns = this->size();
-            Dense<double,3> env({1,1,1});
+            Dense<Type,3> env({1,1,1});
             env.ptr()[0] = 1.0;
             for(size_t i=0;i<ns;++i)
             {

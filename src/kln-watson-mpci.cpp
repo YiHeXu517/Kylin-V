@@ -5,103 +5,29 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "../watson/lattice.h"
-#include "../watson/dmrg.h"
+#include "../watson/si_dmrg.h"
 #include "../watson/timer.h"
-#include "../watson/iCI.h"
 using namespace KylinVib;
 using namespace KylinVib::Watson;
 
 int main( int argc, char ** argv )
 {
-  Timer tm;
-  std::string Nsstr(argv[2]), dstr(argv[3]), Ncfgstr(argv[4]), Npstr(argv[5]);
-  size_t Ns = std::stoul(Nsstr), d = std::stoul(dstr), Ncfg = std::stoul(Ncfgstr),
-  Np = std::stoul(Npstr);
+  mkl_set_num_threads(1);
+  omp_set_num_threads(4);
+  std::string Nsstr(argv[2]), dstr(argv[3]), Ncfgstr(argv[4]), bdstr(argv[5]);
+  size_t Ns = std::stoul(Nsstr), d = std::stoul(dstr), Ncfg = std::stoul(Ncfgstr);
+  size_t nbd = std::stoul(bdstr);
+
+  std::string Eminstr(argv[6]), Emaxstr(argv[7]);
+  double Emin = std::stod(Eminstr), Emax = std::stod(Emaxstr);
+
   Lattice lat(Ns,d,argv[1]);
-  MPO<double> ham = lat.gen_total_para();
-  std::map<size_t,size_t> c;
-  for(size_t i=0;i<Ns;++i)
-  {
-    c[i] = d-1;
-  }
-  MPS<double> s(Ns,d,c);
-  double MaxE = ham.join(s,s);
-  std::cout << std::scientific << "Maximal guess energy = " << MaxE << std::endl;
-  MPO<double> Eyes = lat.gen_eye();
-  Eyes *= -1.0*MaxE;
-  MPO<double> ham_shift = ham + Eyes;
-  ham_shift.canon();
-  MPS<double> hamst = ham_shift.diag_state();
-  std::vector<LabArr<double,2>> liss = hamst.dominant(Ncfg*Ns*d);
-  std::vector<std::tuple<size_t,double>> tups(liss.size());
-  #pragma omp parallel for
-  for(size_t i=0;i<liss.size();++i)
-  {   
-    tups[i] = std::make_tuple(i,liss[i].norm()) ;
-  }
-  std::sort(tups.begin(),tups.end(),
-  [&tups](std::tuple<size_t,double> x1, std::tuple<size_t,double> x2){
-  return std::get<1>(x1)>std::get<1>(x2);});
-  std::vector<LabArr<double,2>> res(Ncfg);
-  for(size_t i=0;i<Ncfg;++i)
-  {
-    res[i] = liss[std::get<0>(tups[i])];
-  }
-  liss = std::move(res);
+  MPO<MKL_Complex16> ham = lat.gen_ctotal_para();
+  MPS<MKL_Complex16> si(Ns,d,nbd);
+  si.canon();
+  si *= 1.0 / si[0].norm();
 
-iCI cores(argv[1]);
-std::string tolstr(argv[6]), enptstr(argv[7]);
-cores.clear_basis();
-for(size_t i=0;i<Ncfg;++i)
-{
-    cores.add_basis(liss[i].labs);
-}
-size_t iter = 0;
-DenseBase<double> E,Prim;
-double TolHCI = stod(tolstr), TolPT2 = stod(enptstr);
-cores.set_tol(TolHCI);
-cores.set_max_qn(d);
-    while(iter<=500)
-    {
-        if(iter==0)
-        {
-start_module(tm,"make-H");
-        cores.make_total();
-end_module(tm,"make-H");
-        }
-
-        size_t nref = cores.num_ref();
-
-start_module(tm,"eigen");
-        cores.eigen(Np,E,Prim);
-end_module(tm,"eigen");
-
-start_module(tm,"Expand-PT2");
-        cores.expand(E,Prim);
-end_module(tm,"Expand-PT2");
-
-        double incre = (cores.num_ref() - nref) * 100.0 / cores.num_ref();
-        cout << "Space enlarged by " << incre << "%" << endl;
-        if(iter!=0 && incre < 1.0  )
-        {
-            cout << "Dominant basis:" << endl;
-            for(size_t st=0;st<Np;++st)
-            {
-               size_t MaxPrimSt = cblas_idamax(nref,Prim.cptr()+st*nref,1);
-               cout << "Eig-state " << st+1 << ": " << cores.get_ref_basis(MaxPrimSt)
-               << " | " << Prim.cptr()[st*nref+MaxPrimSt] << endl;
-            }
-start_module(tm,"ENPT2");
-            cores.enpt2(E,Prim,TolPT2);
-end_module(tm,"ENPT2");
-            break;
-        }
-start_module(tm,"make-Hex");
-        cores.make_total_increment(nref);
-end_module(tm,"make-Hex");
- 
-        iter++;
-    }
-    cout << tm << endl;
-    return 0;
+  FEAST driver(ham,si,1e-8,nbd);
+  driver.naive_impl(Emin,Emax);
+  return 0;
 }

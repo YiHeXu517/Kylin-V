@@ -9,6 +9,80 @@
 
 namespace KylinVib
 {
+    namespace Vibronic
+    {
+        class Lattice
+        {
+            private:
+            size_t NumEle_;
+            size_t NumVib_;
+            Dense<double,2> HamEle_;
+            Dense<double,1> HamVib_;
+            Dense<double,3> HamLVC_;
+            Dense<double,4> HamQVC_;
+            std::vector<int> SiteToLab_;
+            std::vector<size_t> SiteOccs_;
+            std::map<int,size_t> LabToSite_;
+
+            public:
+            Lattice()  = default;
+            ~Lattice() = default;
+
+            Lattice(const char * filename);
+        };
+    }
+    // spin-1/2
+    namespace Heisenberg2
+    {
+        class Lattice
+        {
+            private:
+            size_t L_;
+            std::vector<MPO<double>> ops_;
+
+            public:
+            Lattice(size_t len) : L_(len), ops_(3*L_-3)
+            {
+            
+            }
+            ~Lattice() = default;
+
+            MPO<double> gen_total()
+            {
+                MPO<double> res(L_);
+                for(size_t j=0;j<L_-1;++j)
+                {
+                    MPO<double> opp(L_),opm(L_),opz(L_);
+                    for(size_t k=0;k<L_;++k)
+                    {
+                        if(k==j) 
+                        { 
+                            opp[k] = to_matrix(LocalOp::Sp);
+                            opp[k+1] = to_matrix(LocalOp::Sm);
+                            opm[k] = to_matrix(LocalOp::Sm);
+                            opm[k+1] = to_matrix(LocalOp::Sp);
+                            opz[k] = to_matrix(LocalOp::Sz);
+                            opz[k+1] = to_matrix(LocalOp::Sz);
+                            opp[k] *= 0.5;
+                            opm[k] *= 0.5;
+                        }
+                        else if(k!=j && k!=j+1)
+                        {
+                            opp[k] = to_matrix(LocalOp::I);
+                            opm[k] = to_matrix(LocalOp::I);
+                            opz[k] = to_matrix(LocalOp::I);
+                        }
+                    }
+                    if(j==0) { res = opp; }
+                    else { res += opp;  }
+                    res += opm;
+                    res += opz;
+                    res.canon();
+                }
+                return res;
+            }
+        };
+    }
     namespace Watson
     {
         class Lattice
@@ -110,6 +184,35 @@ namespace KylinVib
                     for(size_t j=0;j<ndof_;++j)
                     {
                         tmpi[j] = to_matrix<Dense<double,4>>(Lab_[i][j],nexc_);
+                    }
+                    tmpi *= Val_[i];
+                    size_t ThreadID = omp_get_thread_num();
+                    if(hams[ThreadID][0].shape()[1]!=tmpi[0].shape()[1]) { hams[ThreadID] = tmpi; }
+                    else { hams[ThreadID] += tmpi; }
+                    //std::cout << "Contract term " << i+1 << " / " << nTerm << std::endl;
+                    hams[ThreadID].canon();
+                }
+                for(size_t i=1;i<nth;++i)
+                {
+                    hams[0] += hams[i];
+                    hams[0].canon();
+                }
+                return hams[0];
+            }
+            MPO<MKL_Complex16> gen_ctotal_para()
+            {
+                size_t nTerm = Val_.size(), nth;
+                #pragma omp parallel
+                nth = omp_get_num_threads();
+
+                std::vector<MPO<MKL_Complex16>> hams(nth,ndof_);
+                #pragma omp parallel for
+                for(size_t i=0;i<nTerm;++i)
+                {
+                    MPO<MKL_Complex16> tmpi(ndof_);
+                    for(size_t j=0;j<ndof_;++j)
+                    {
+                        tmpi[j] = to_matrix<Dense<MKL_Complex16,4>>(Lab_[i][j],nexc_);
                     }
                     tmpi *= Val_[i];
                     size_t ThreadID = omp_get_thread_num();

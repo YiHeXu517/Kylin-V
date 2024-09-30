@@ -255,7 +255,7 @@ namespace KylinVib
       }
       else if constexpr (std::is_same<Type,MKL_Complex16>::value)
       {
-        res = cblas_zdnrm2(this->size(),this->ptr(),1);
+        res = cblas_dznrm2(this->size(),this->ptr(),1);
       }
       return res;
     }

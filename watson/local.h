@@ -6,6 +6,137 @@
 
 namespace KylinVib
 {
+    namespace Vibronic
+    {
+        enum class LocalOp
+        {
+            I,Upper,Lower,N,Q,Q2
+        };
+        // output
+        std::ostream & operator<<(std::ostream & os, LocalOp op)
+        {
+            switch (op)
+            {
+            case LocalOp::I:
+                os << "I";
+                break;
+            case LocalOp::Upper:
+                os << "a^{+}";
+                break;
+            case LocalOp::Lower:
+                os << "a";
+                break;
+            case LocalOp::Q:
+                os << "Q";
+                break;
+            case LocalOp::Q2:
+                os << "Q2";
+                break;
+            case LocalOp::N:
+                os << "N";
+                break;
+            default:
+                break; 
+            }
+            return os;
+        }
+        // define multiplication
+        LocalOp apply_lop(LocalOp lhs, LocalOp rhs)
+        {
+            LocalOp res = LocalOp::I;
+            switch (rhs)
+            {
+            case LocalOp::I:
+                res = lhs;
+                break;
+            case LocalOp::Q:
+                switch (lhs)
+                {
+                case LocalOp::I:
+                    res = LocalOp::Q;
+                    break;
+                case LocalOp::Q:
+                    res = LocalOp::Q2;
+                    break;
+                default:
+                    break;
+                }
+                break;
+            case LocalOp::Upper:
+                switch (lhs)
+                {
+                case LocalOp::I:
+                    res = LocalOp::Q;
+                    break;
+                case LocalOp::Lower:
+                    res = LocalOp::N;
+                    break;
+                default:
+                    break;
+                }
+                break;
+            default:
+                break;
+            }
+            return res;
+        }
+    }
+    namespace Heisenberg2
+    {
+        enum class LocalOp
+        {
+            I,Sp,Sm,Sz,
+        };
+        // output
+        std::ostream & operator<<(std::ostream & os, LocalOp op)
+        {
+            switch (op)
+            {
+            case LocalOp::I:
+                os << "I";
+                break;
+            case LocalOp::Sp:
+                os << "Sp";
+                break;
+            case LocalOp::Sm:
+                os << "Sm";
+                break;
+            case LocalOp::Sz:
+                os << "Sz";
+                break;
+            default:
+                break;
+            }
+            return os;
+        }
+        // transform to mpo-matrix
+        template<typename ArrType = Dense<double,4>>
+        ArrType to_matrix(LocalOp op)
+        {
+            ArrType res({1,2,2,1});
+            size_t lev = 0;
+            switch (op)
+            {
+            case LocalOp::I:
+                res({0,0,0,0}) = 1.0;
+                res({0,1,1,0}) = 1.0;
+                break;
+            case LocalOp::Sp:
+                res({0,1,0,0}) = 1.0;
+                break;
+            case LocalOp::Sm:
+                res({0,0,1,0}) = 1.0;
+                break;
+            case LocalOp::Sz:
+                res({0,0,0,0}) = 0.5;
+                res({0,1,1,0}) = -0.5;
+                break;
+            default:
+                break;
+            }
+            return res;
+        }
+    }
     namespace Watson
     {
         enum class LocalOp

@@ -340,13 +340,13 @@ namespace KylinVib
     size_t ldu = std::min(nrow,ncol);
     int ifsv;
     Dense<Type,2> u({nrow,ldu}),vt({ldu,ncol}),diags({ldu,ldu});
-    Dense<Type,1> s({ldu}),sp({ldu-1});
+    Dense<double,1> s({ldu}),sp({ldu-1});
     if constexpr (std::is_same<Type,double>::value)
     {
     ifsv = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'S', 'S', nrow, ncol, m.ptr(), ncol,
             s.ptr(), u.ptr(), ldu, vt.ptr(), ncol, sp.ptr());
     }
-    else if constexpr (std::is_same<Type,double>::value)
+    else if constexpr (std::is_same<Type,MKL_Complex16>::value)
     {
     ifsv = LAPACKE_zgesvd(LAPACK_ROW_MAJOR, 'S', 'S', nrow, ncol, m.ptr(), ncol,
             s.ptr(), u.ptr(), ldu, vt.ptr(), ncol, sp.ptr());
