@@ -1,7 +1,6 @@
 /* timer tools for code module or subprograms */
 
-#ifndef timer_H
-#define timer_H
+#pragma once
 
 #include <chrono>
 #include <string>
@@ -99,4 +98,3 @@ namespace KylinVib
         }
     }
 } 
-#endif
