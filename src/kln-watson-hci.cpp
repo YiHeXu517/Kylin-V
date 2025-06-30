@@ -1,5 +1,5 @@
 /* iCI main program */
-#include "../watson/iCI.h"
+#include "../watson/hci.h"
 using namespace KylinVib;
 using namespace KylinVib::Watson;
 using std::stoul;

@@ -329,6 +329,42 @@ namespace KylinVib
                 ofstream ofs2(fn2);
                 Sec.save(ofs2);
             }
+            // ex-cavity coupling
+            if(s.ExcitonCavityCoupling.size()!=0) 
+            {
+                Operator Ecc;
+                for(INT i(0);i<s.ExcitonCavityCoupling.size();++i)
+                {
+                    INT vib1 = get<0>(s.ExcitonCavityCoupling[i]);
+                    INT e1 = get<2>(s.ExcitonCavityCoupling[i]);
+                    double val = get<4>(s.ExcitonCavityCoupling[i]);
+     
+                    INT sitev1 = s.LabToSite[vib1];
+                    INT site1 = s.LabToSite[e1];
+   
+                    Operator bp1 = mpo_dot(RPO[sitev1],LPO[sitev1]);
+                    Operator pb1 = mpo_dot(LPO[sitev1],RPO[sitev1]);
+                    bp1 += pb1;
+
+                    bp1 *= val*sqrt(0.5);
+                    if(i==0)
+                    {
+                        Ecc = move(bp1);
+                    }
+                    else
+                    {
+                        Ecc += bp1;
+                    } 
+                    if( i/10 != (i+1)/10 )   // truncate every 50 terms
+                    { Ecc.truncate(tol); }
+                    cout << "Ex-Ca term " << i+1 << endl;
+                } 
+                totals.push_back(Ecc);
+                cout << "Ex-Ca term finished." << endl;
+                string fn2 = "Op/H_ca";
+                ofstream ofs2(fn2);
+                Ecc.save(ofs2);
+            }
             // add together
             Operator res (PureEle);
             for(INT i(1);i<totals.size();++i) { res += totals[i]; }

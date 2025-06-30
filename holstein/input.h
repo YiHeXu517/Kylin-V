@@ -46,6 +46,9 @@ namespace KylinVib
 
             /* bilinear coupling */
             vector<tuple<INT,INT,INT,INT,double>> BilinearCoupling;
+
+            /* exciton-cavity coupling (cavity is taken as vibrational mode) */
+            vector<tuple<INT,INT,INT,INT,double>> ExcitonCavityCoupling;
         };
 
         struct DumpConfig
@@ -133,6 +136,17 @@ namespace KylinVib
                         INT vib1, vib2, e1, e2; double val;
                         ifs >> vib1 >> vib2 >> e1 >> e2 >> val;
                         r.BilinearCoupling.push_back( make_tuple(vib1+r.NumEle-1,vib2+r.NumEle-1,e1-1,e2-1,val) );
+                    }
+                }
+                else if(tmp.find("cavity")!=string::npos)
+                {
+                    INT nTerm;
+                    ifs >> nTerm;
+                    for(INT i(0);i<nTerm;++i)
+                    {
+                        INT vib1, e1; double val;
+                        ifs >> vib1 >> e1 >> val;
+                        r.ExcitonCavityCoupling.push_back( make_tuple(vib1+r.NumEle-1,e1-1,val) );
                     }
                 }
                 else if(tmp.find("reorder")!=string::npos)
