@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <omp.h>
 #include <cmath>
+#include <array>
 #include "timer.h"
 
 namespace KylinVib
@@ -27,6 +28,11 @@ namespace KylinVib
     using std::max;
     using std::clock_t;
     using std::clock;
+    using std::conj;
+    using std::exp;
+    using std::real;
+    using std::imag;
+    using std::array;
     namespace Watson
     {
         /// normal mode basis
@@ -314,7 +320,59 @@ namespace KylinVib
                 << (trips_.size() / nref) * 100.0 / nref
                 << " %." << endl;
             }
-
+            /// apply the Hamiltonian to given vector
+            void apply_hamiltonian(DenseBase<double> & Prim)
+            {
+                size_t nref = OrdRef_.size(), nnz = trips_.size();
+                size_t k,info;
+                DenseBase<size_t> rws(nnz),cms(nnz);
+                DenseBase<double> vus(nnz),res(nref),Prim2(nref);
+                cblas_dcopy(Prim.size(),Prim.ptr(),1,Prim2.ptr(),1);
+                #pragma omp parallel for
+                for(size_t em=0;em<nnz;++em)
+                {
+                    rws.ptr()[em] = get<0>(trips_[em])+1;
+                    cms.ptr()[em] = get<1>(trips_[em])+1;
+                    vus.ptr()[em] = get<2>(trips_[em]);
+                }
+                char which = 'S';
+                sparse_matrix_t A = NULL, B = NULL;
+                struct matrix_descr descr;
+                descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+                mkl_sparse_d_create_coo ( &A, SPARSE_INDEX_BASE_ONE, nref, nref, nnz,
+                rws.ptr(), cms.ptr(),  vus.ptr());
+                info = mkl_sparse_convert_csr ( A, SPARSE_OPERATION_NON_TRANSPOSE, &B);
+                info = mkl_sparse_d_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1.0, B, descr,Prim2.ptr(),0.0,res.ptr());
+                mkl_sparse_destroy(A);
+                mkl_sparse_destroy(B);
+                Prim = move(res);
+            }
+            void apply_hamiltonian(DenseBase<MKL_Complex16> & Prim)
+            {
+                size_t nref = OrdRef_.size(), nnz = trips_.size();
+                size_t k,info;
+                DenseBase<size_t> rws(nnz),cms(nnz);
+                DenseBase<MKL_Complex16> vus(nnz),res(nref),Prim2(nref);
+                cblas_zcopy(Prim.size(),Prim.ptr(),1,Prim2.ptr(),1);
+                #pragma omp parallel for
+                for(size_t em=0;em<nnz;++em)
+                {
+                    rws.ptr()[em] = get<0>(trips_[em])+1;
+                    cms.ptr()[em] = get<1>(trips_[em])+1;
+                    vus.ptr()[em] = get<2>(trips_[em]);
+                }
+                char which = 'S';
+                sparse_matrix_t A = NULL, B = NULL;
+                struct matrix_descr descr;
+                descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+                mkl_sparse_z_create_coo ( &A, SPARSE_INDEX_BASE_ONE, nref, nref, nnz,
+                rws.ptr(), cms.ptr(),  vus.ptr());
+                info = mkl_sparse_convert_csr ( A, SPARSE_OPERATION_NON_TRANSPOSE, &B);
+                info = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1.0, B, descr,Prim2.ptr(),0.0,res.ptr());
+                mkl_sparse_destroy(A);
+                mkl_sparse_destroy(B);
+                Prim = move(res);
+            }
             /// sparse eigen solver
             void eigen(size_t k0, DenseBase<double> & E, DenseBase<double> & Prim)
             {
@@ -351,6 +409,82 @@ namespace KylinVib
                     double val = (st==0) ? E.ptr()[st] : E.ptr()[st] - E.ptr()[0];
                     cout << "Eigval " << st+1 << " = " << val << endl;
                 }
+            }
+
+            // Lanczos time evolution solver
+            void Lanczos(DenseBase<MKL_Complex16> & Prim, double dt, size_t k0 = 20)
+            {
+                size_t nref = OrdRef_.size(), nnz = trips_.size();
+                size_t k,info;
+                DenseBase<size_t> rws(nnz),cms(nnz);
+                DenseBase<MKL_Complex16> vus(nnz),Vm(k0*nref);
+                #pragma omp parallel for
+                for(size_t em=0;em<nnz;++em)
+                {
+                    rws.ptr()[em] = get<0>(trips_[em])+1;
+                    cms.ptr()[em] = get<1>(trips_[em])+1;
+                    vus.ptr()[em] = get<2>(trips_[em]);
+                }
+                char which = 'S';
+                sparse_matrix_t A = NULL, B = NULL;
+                struct matrix_descr descr;
+                descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+                mkl_sparse_z_create_coo ( &A, SPARSE_INDEX_BASE_ONE, nref, nref, nnz,
+                rws.ptr(), cms.ptr(),  vus.ptr());
+                info = mkl_sparse_convert_csr ( A, SPARSE_OPERATION_NON_TRANSPOSE, &B);
+                double err = 1.0;
+                cblas_zcopy(Prim.size(),Prim.ptr(),1,Vm.ptr(),1);
+                double nmv0 = cblas_dznrm2(nref,Vm.ptr(),1);
+                cblas_zdscal(nref,1.0/nmv0,Vm.ptr(),1);
+                vector<tuple<size_t,size_t,MKL_Complex16>> TmTrips;
+                for(k=0;k<k0;++k)
+                {
+                    DenseBase<MKL_Complex16> hv(nref);
+                    info = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1.0, B, descr,Vm.ptr()+k*nref,0.0,hv.ptr());
+                    cblas_zdscal(nref,dt,hv.ptr(),1);
+                    for(size_t j=0;j<k+1;++j)
+                    {
+                        MKL_Complex16 Ovp;
+                        cblas_zdotc_sub(nref,Vm.ptr()+j*nref,1,hv.ptr(),1,&Ovp);
+                        TmTrips.push_back(make_tuple(j,k,Ovp));
+                        Ovp *= -1.0;
+                        cblas_zaxpy(nref,&Ovp,Vm.ptr()+j*nref,1,hv.ptr(),1);
+                    }
+                    double nmhv = cblas_dznrm2(nref,hv.ptr(),1);
+                    err *= nmhv;
+                    if(err<1e-8 || k==k0-1)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        MKL_Complex16 nmhv1 = 1.0 / nmhv;
+                        TmTrips.push_back(make_tuple(k+1,k,1.0/nmhv1));
+                        cblas_zaxpy(nref,&nmhv1,hv.ptr(),1,Vm.ptr()+(k+1)*nref,1);
+                    }
+                }
+                DenseBase<MKL_Complex16> Tm((k+1)*(k+1)),ExpiHt(k+1);
+                DenseBase<double> Eigam(k+1);
+                MKL_Complex16 ones(0,-1.0);
+                for(auto & t : TmTrips)
+                {
+                    Tm.ptr()[ get<0>(t)*(k+1) + get<1>(t) ] = get<2>(t);
+                }
+                info = LAPACKE_zheevd(LAPACK_ROW_MAJOR, 'V', 'U', k+1, Tm.ptr(), k+1, Eigam.ptr());
+                for(size_t j=0;j<k+1;++j)
+                {
+                    for(size_t m=0;m<k+1;++m)
+                    {
+                        ExpiHt.ptr()[j] += Tm.ptr()[j*k+j+m] * exp(ones*Eigam.ptr()[m]) * conj(Tm.ptr()[m]);
+                    }
+                }
+                Prim.initialize(nref);
+                for(size_t j=0;j<k+1;++j)
+                {
+                    cblas_zaxpy(nref,ExpiHt.ptr()+j,Vm.ptr()+j*nref,1,Prim.ptr(),1);
+                }
+                mkl_sparse_destroy(A);
+                mkl_sparse_destroy(B);
             }
 
             /// expectation <s|H|s> with same basis
@@ -477,7 +611,73 @@ namespace KylinVib
                     }
                 }
             }
+            /// expand the external space basis according to PT2
+            void expand(DenseBase<MKL_Complex16> const & Prim)
+            {
+                size_t nref = OrdRef_.size(), ntm = labels_.size(), nth;
+                #pragma omp parallel
+                nth = omp_get_num_threads();
 
+                // save the results of single process
+                vector<unordered_set<Basis,HashBasis>> TmpPots(nth);
+
+                // calculate Hmn
+                #pragma omp parallel for
+                for(size_t ref=0;ref<nref;++ref)
+                {
+                    // build m from every n
+                    unordered_map<Basis,double,HashBasis> Hr;
+                    for(size_t tm=0;tm<ntm;++tm)
+                    {
+                        double coeff = vals_[tm];
+                        unordered_map<Basis,double,HashBasis> tmr;
+                        tmr[OrdRef_[ref]] = coeff;
+                        for(int lab : labels_[tm])
+                        {
+                            unordered_map<Basis,double,HashBasis> tmps;
+                            for(const auto & [bas,cf] : tmr)
+                            {
+                                apply_PQ(bas,cf,lab,tmps);
+                            }
+                            swap(tmr,tmps);
+                        }
+                        for(const auto & [bas,cf] : tmr)
+                        {
+                            if(accumulate(bas.begin(),bas.end(),0)>MaxQn_) {continue;}
+                            if(Hr.find(bas)==Hr.end() && Ord_.find(bas)==Ord_.end())
+                            {
+                                Hr[bas] = cf;
+                            }
+                            else if(Hr.find(bas)!=Hr.end() && Ord_.find(bas)==Ord_.end())
+                            {
+                                Hr[bas] += cf;
+                            }
+                        }
+                    }
+                    // select
+                    size_t ThreadID = omp_get_thread_num();
+                    for(const auto & [bas,cf] : Hr)
+                    {
+                        if(abs(cf*Prim.ptr()[ref])>thres_ &&
+                        Ord_.find(bas)==Ord_.end())
+                        {
+                            TmpPots[ThreadID].insert(bas);
+                        }
+                    }
+                }
+                // add basis
+                for(size_t th=0;th<nth;++th)
+                {
+                    for(const auto & bas : TmpPots[th])
+                    {
+                        if(Ord_.find(bas)==Ord_.end())
+                        {
+                            add_basis(bas);
+                        }
+                    }
+                }
+            }
+          
             void enpt2(DenseBase<double> const & E, DenseBase<double> const & Prim, double eps = 0.02)
             {
                 size_t Np = E.size(), nref = OrdRef_.size(), ncol = Prim.size() / Np,
@@ -614,137 +814,6 @@ namespace KylinVib
                 }
             }
 
-
-            void enpt2_bkp(DenseBase<double> const & E, DenseBase<double> const & Prim, double eps = 0.02)
-            {
-                size_t Np = E.size(), nref = OrdRef_.size(), ncol = Prim.size() / Np,
-                ntm = labels_.size(), nth;
-                DenseBase<double> Prim2(Np*nref);
-                for(size_t p=0;p<Np;++p)
-                {
-                    cblas_dcopy(ncol,Prim.ptr()+p*ncol,1,Prim2.ptr()+p*nref,1);
-                }
-                #pragma omp parallel
-                nth = omp_get_num_threads();
-
-                vector<Basis> PTVec;
-                unordered_map<Basis,size_t,HashBasis> PTOrds,VacPTs;
-
-                #pragma omp parallel for
-                for(size_t ref=0;ref<nref;++ref)
-                {
-                    unordered_map<Basis,double,HashBasis> Hr;
-                    for(size_t tm=0;tm<ntm;++tm)
-                    {
-                        double coeff = vals_[tm];
-                        unordered_map<Basis,double,HashBasis> tmr;
-                        tmr[OrdRef_[ref]] = coeff;
-                        for(int lab : labels_[tm])
-                        {
-                            unordered_map<Basis,double,HashBasis> tmps;
-                            for(const auto & [bas,cf] : tmr)
-                            {
-                                apply_PQ(bas,cf,lab,tmps);
-                            }
-                            swap(tmr,tmps);
-                        }
-                        for(const auto & [bas,cf] : tmr)
-                        {
-                            if(accumulate(bas.begin(),bas.end(),0)>MaxQn_) { continue; }
-                            if(Hr.find(bas)==Hr.end() && Ord_.find(bas)==Ord_.end())
-                            {
-                                Hr[bas] = cf;
-                            }
-                            else if(Hr.find(bas)!=Hr.end() && Ord_.find(bas)==Ord_.end())
-                            {
-                                Hr[bas] += cf;
-                            }
-                        }
-                    }
-
-                    size_t MaxPrimEnt = cblas_idamax(Np,Prim2.ptr()+ref,nref);
-                    size_t ThreadID = omp_get_thread_num();
-                    #pragma omp critical
-                    {
-                        for(const auto & [bas,cf] : Hr)
-                        {
-                            if(abs(cf*Prim2.ptr()[MaxPrimEnt*nref+ref])>eps &&
-                            Ord_.find(bas)==Ord_.end())
-                            {
-                                if(PTOrds.find(bas)==PTOrds.end())
-                                {
-                                    PTOrds[bas] = PTVec.size();
-                                    PTVec.push_back(bas);
-                                }
-                            }
-                        }
-                    }
-                }
-                PTOrds = VacPTs;
-                DenseBase<double> DeltaE(Np);
-                size_t npt2 = PTVec.size();
-                cout << npt2 << " ENPT2 basis." << endl;
-
-                /// correction
-                #pragma omp parallel for
-                for(size_t m=0;m<npt2;++m)
-                {
-                    unordered_map<Basis,double,HashBasis> Hr;
-                    double Hmm = 0.0;
-                    for(size_t tm=0;tm<ntm;++tm)
-                    {
-                        double coeff = vals_[tm];
-                        unordered_map<Basis,double,HashBasis> tmr;
-                        tmr[PTVec[m]] = coeff;
-                        for(int lab : labels_[tm])
-                        {
-                            unordered_map<Basis,double,HashBasis> tmps;
-                            for(const auto & [bas,cf] : tmr)
-                            {
-                                apply_PQ(bas,cf,lab,tmps);
-                            }
-                            swap(tmr,tmps);
-                        }
-                        for(const auto & [bas,cf] : tmr)
-                        {
-                            if(Hr.find(bas)==Hr.end() && Ord_.find(bas)!=Ord_.end())
-                            {
-                                Hr[bas] = cf;
-                            }
-                            else if(Hr.find(bas)!=Hr.end() && Ord_.find(bas)!=Ord_.end())
-                            {
-                                Hr[bas] += cf;
-                            }
-                            if(bas==PTVec[m])
-                            {
-                                Hmm += cf;
-                            }
-                        }
-                    }
-                    #pragma omp critical
-                    {
-                    for(size_t p=0;p<Np;++p)
-                    {
-                        double Hmn = 0.0;
-                        for(const auto & [bas,cf] : Hr)
-                        {
-                            if(Ord_[bas]>=nref) {continue;}
-                            Hmn += cf * Prim2.ptr()[p*nref+Ord_[bas]];
-                        }
-                        DeltaE.ptr()[p] += pow(Hmn,2.0) / (E.ptr()[p] - Hmm);
-                    }
-                    }
-                }
-
-                cout << "ENPT2 correction:" << endl;
-                for(size_t st=0;st<Np;++st)
-                {
-                    double val = (st==0) ? E.ptr()[st] + DeltaE.ptr()[st] : E.ptr()[st] + DeltaE.ptr()[st]
-                    - E.ptr()[0] - DeltaE.ptr()[0];
-                    cout << "Eigval " << st+1 << " = " << val << endl;
-                }
-            }
-
             size_t num_ref() const
             {
                 return OrdRef_.size();
@@ -763,6 +832,25 @@ namespace KylinVib
             void set_max_qn(size_t qns)
             {
                 MaxQn_ = qns;
+            }
+
+            void rescale(double scal)
+            {
+                for(size_t i=0;i<vals_.size();++i)
+                {
+                    vals_[i] *= scal;
+                }
+            }
+
+            void copy_basis(iCI const & c)
+            {
+                Ord_ = c.Ord_;
+                OrdRef_ = c.OrdRef_;
+            }
+
+            size_t num_vib() const
+            {
+                return NumMode_;
             }
 
             private:

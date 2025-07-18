@@ -46,9 +46,9 @@ end_module(tm,"Expand-PT2");
             cout << "Dominant basis:" << endl;
             for(size_t st=0;st<Np;++st)
             {
-               size_t MaxPrimSt = cblas_idamax(nref,Prim.cptr()+st*nref,1);
+               size_t MaxPrimSt = cblas_idamax(nref,Prim.ptr()+st*nref,1);
                cout << "Eig-state " << st+1 << ": " << cores.get_ref_basis(MaxPrimSt)
-               << " | " << Prim.cptr()[st*nref+MaxPrimSt] << endl;
+               << " | " << Prim.ptr()[st*nref+MaxPrimSt] << endl;
             }
 start_module(tm,"ENPT2");
             cores.enpt2(E,Prim,TolPT2);

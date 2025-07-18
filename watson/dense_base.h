@@ -90,7 +90,7 @@ namespace KylinVib
                 return ptr_;
             }
 
-            ScalarType const * cptr() const
+            ScalarType const * ptr() const
             {
                 return ptr_;
             }
