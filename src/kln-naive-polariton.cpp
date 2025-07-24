@@ -79,7 +79,7 @@ int main( int argc, char ** argv )
             {
                 dipole_ge({g,e}) += LO[val].join(Vmg[g],Vme[e]);
             }
-            adown_ge({g,e}) = LO[Nmol/2].join(Vmg[g],Vme[e]);
+            adown_ge({g,e}) = LO[Nmol].join(Vmg[g],Vme[e]);
         }
         for(int f=0;f<Ntf;++f)
         {
@@ -87,10 +87,14 @@ int main( int argc, char ** argv )
             {
                 dipole_ef({e,f}) += LO[val].join(Vme[e],Vmf[f]);
             }
-             adown_ef({e,f}) = LO[Nmol/2].join(Vme[e],Vmf[f]);
+             adown_ef({e,f}) = LO[Nmol].join(Vme[e],Vmf[f]);
         }
     }
-
+    dipole_ge.print();
+    dipole_ef.print();
+    adown_ge.print();
+    adown_ef.print();
     /* signals */
 
+    return 0;
 }
