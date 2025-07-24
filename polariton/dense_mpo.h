@@ -103,7 +103,7 @@ namespace KylinVib
         MPS<Type> apply_op(MPS<Type> const & s, double tol = 1e-14, int maxdim = 1000) const
         {
             int ns = this->size();
-            Dense<double,3> env({1,1,1});
+            Dense<Type,3> env({1,1,1});
             env.ptr()[0] = 1.0;
             MPS<Type> res(ns);
             for(int i=0;i<ns;++i)
@@ -113,7 +113,7 @@ namespace KylinVib
                 lso = transpose<Type,4>(lso,{0,2,3,1});
                 if(i!=ns-1)
                 {
-                    auto[lef,rig] = svd<Type,2,2>(lso,'r',tol,maxdim);
+                    auto[lef,rig] = svd<Type,2,2>(lso,'r',tol,maxdim,'n','y');
                     res[i] = std::move(lef);
                     env = std::move(rig);
                 }
@@ -130,7 +130,7 @@ namespace KylinVib
             }
             for(int i=ns-1;i>0;--i)
             {
-                auto[lef,rig] = svd<Type,1,2>(res[i],'l',tol,maxdim);
+                auto[lef,rig] = svd<Type,1,2>(res[i],'l',tol,maxdim,'n','y');
                 res[i] = std::move(rig);
                 res[i-1] = prod<Type,3,2,1>(res[i-1],lef,{2},{0});
             }

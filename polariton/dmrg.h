@@ -184,12 +184,12 @@ namespace KylinVib
         {
             int ns = ham_.size();
             Type Ene = 0.0, Ovp = 0.0;
+            double Var = 1e19;
             for(int swp=0;swp<NumSwps;++swp)
             {
                 for(int i=0;i<ns-1;++i)
                 {
                     Dense<Type,4> s2 = prod<Type,3,3,1>(state_[i],state_[i+1],{2},{0});
-                    ////s2 = two_site_gmres(s2,i,two_site_overlap_apply(ovl_.back(),state0_[i],state0_[i+1],ovr_.back()),eta,MicroIter);
                     s2 = two_site_gmres(s2,i,s2,eta,MicroIter);
                     auto[lef,rig] = svd<Type,2,2>(s2,'r',tol_, MaxBond_);
                     state_[i] = std::move(lef);
@@ -198,15 +198,11 @@ namespace KylinVib
                     {
                         envl_.push_back(MPO<Type>::sweep(envl_.back(),ham_[i],state_[i],state_[i],'r'));
                         envr_.pop_back();
-                        ////ovl_.push_back(MPS<Type>::sweep(ovl_.back(),state_[i],state0_[i],'r'));
-                        ////ovl_.push_back(MPS<Type>::sweep(ovl_.back(),state_[i],state_[i],'r'));
-                        ////ovr_.pop_back();
                     }
                 }
                 for(int i=ns-1;i>0;--i)
                 {
                     Dense<Type,4> s2 = prod<Type,3,3,1>(state_[i-1],state_[i],{2},{0});
-                    ////s2 = two_site_gmres(s2,i-1,two_site_overlap_apply(ovl_.back(),state0_[i-1],state0_[i],ovr_.back()),eta,MicroIter);
                     s2 = two_site_gmres(s2,i-1,s2,eta,MicroIter);
                     auto[lef,rig] = svd<Type,2,2>(s2,'l',tol_, MaxBond_);
                     state_[i] = std::move(rig);
@@ -215,34 +211,36 @@ namespace KylinVib
                     {
                         envr_.push_back(MPO<Type>::sweep(envr_.back(),ham_[i],state_[i],state_[i],'l'));
                         envl_.pop_back();
-                        ////ovr_.push_back(MPS<Type>::sweep(ovr_.back(),state_[i],state0_[i],'l'));
-                        ////ovr_.push_back(MPS<Type>::sweep(ovr_.back(),state_[i],state_[i],'l'));
-                        ////ovl_.pop_back();
                     }
                 }
                 Type CurEne = ham_.join(state_,state_);
-                std::cout << "Current energy  = " << CurEne << std::endl;
-                if(std::abs((CurEne-Ene)/(CurEne+Ene))<0.1)
+                MPS<Type> hs0 = ham_.apply_op(state_);
+                Type CurH2 = hs0.overlap(hs0);
+                double CurVar = std::real(CurH2 - std::pow(CurEne,2.0));
+                std::cout << std::scientific << "<H>  = " << CurEne << std::endl; 
+                std::cout << std::scientific << "<H^2>-<H>^2  = " << Var << std::endl; 
+                if(CurVar<=0.01 || CurVar>Var)
                 {
                     break;
                 }
                 else
                 {
-                    Ene = CurEne;
+                    Var = CurVar;
                 }
             }
             envr_.push_back(MPO<Type>::sweep(envr_.back(),ham_[1],state_[1],state_[1],'l'));
-            ////ovr_.push_back(MPS<Type>::sweep(ovr_.back(),state_[1],state0_[1],'l'));
         }
         void one_site_SI(Type const & eta, int NumSwps, int MicroIter)
         {
             int ns = ham_.size();
-            Type Ene = 0.0, Ovp = 0.0;
+            Type Ene = ham_.join(state_,state_);
+            MPS<Type> hs0 = ham_.apply_op(state_);
+            Type CurH2 = hs0.overlap(hs0);
+            double Var = std::real(CurH2 - std::pow(Ene,2.0));
             for(int swp=0;swp<NumSwps;++swp)
             {
                 for(int i=0;i<ns;++i)
                 {
-                    ///Dense<Type,3> s1 = one_site_gmres(state_[i], i, one_site_overlap_apply(ovl_.back(),state0_[i],ovr_.back()), eta, MicroIter);
                     Dense<Type,3> s1 = one_site_gmres(state_[i], i, state_[i], eta, MicroIter);
                     if(i!=ns-1)
                     {
@@ -251,9 +249,6 @@ namespace KylinVib
                         state_[i+1] = prod<Type,2,3,1>(rig,state_[i+1],{1},{0});
                         envl_.push_back(MPO<Type>::sweep(envl_.back(),ham_[i],state_[i],state_[i],'r'));
                         envr_.pop_back();
-                        ////ovl_.push_back(MPS<Type>::sweep(ovl_.back(),state_[i],state0_[i],'r'));
-                        ////ovl_.push_back(MPS<Type>::sweep(ovl_.back(),state_[i],state_[i],'r'));
-                        ////ovr_.pop_back();
                     }
                     else
                     {
@@ -262,7 +257,6 @@ namespace KylinVib
                 }
                 for(int i=ns;i>0;--i)
                 {
-                    ////Dense<Type,3> s1 = one_site_gmres(state_[i-1], i-1, one_site_overlap_apply(ovl_.back(),state0_[i-1],ovr_.back()),eta, MicroIter);
                     Dense<Type,3> s1 = one_site_gmres(state_[i-1], i-1, state_[i-1],eta, MicroIter);
                     if(i!=1)
                     {
@@ -271,9 +265,6 @@ namespace KylinVib
                         state_[i-2] = prod<Type,3,2,1>(state_[i-2],lef,{2},{0});
                         envr_.push_back(MPO<Type>::sweep(envr_.back(),ham_[i-1],state_[i-1],state_[i-1],'l'));
                         envl_.pop_back();
-                        ////ovr_.push_back(MPS<Type>::sweep(ovr_.back(),state_[i-1],state0_[i-1],'l'));
-                        ////ovr_.push_back(MPS<Type>::sweep(ovr_.back(),state_[i-1],state_[i-1],'l'));
-                        ////ovl_.pop_back();
                     }
                     else
                     {
@@ -281,14 +272,18 @@ namespace KylinVib
                     }
                 }
                 Type CurEne = ham_.join(state_,state_);
-                std::cout << std::scientific << "Current energy  = " << CurEne << std::endl;
-                if(std::abs((CurEne-Ene)/(CurEne+Ene))<1e-4)
+                MPS<Type> hs0 = ham_.apply_op(state_);
+                Type CurH2 = hs0.overlap(hs0);
+                double CurVar = std::real(CurH2 - std::pow(CurEne,2.0));
+                std::cout << std::scientific << "<H>  = " << CurEne << std::endl; 
+                std::cout << std::scientific << "<H^2>-<H>^2  = " << Var << std::endl; 
+                if(CurVar<=0.01 || CurVar>Var)
                 {
                     break;
                 }
                 else
                 {
-                    Ene = CurEne;
+                    Var = CurVar;
                 }
             }
         }
@@ -602,10 +597,10 @@ namespace KylinVib
     class FEAST
     {
         public:
-        FEAST(MPO<MKL_Complex16> const & op, MPS<MKL_Complex16> const & s, double tol, int maxdim)
-        : ham_(op), tol_(tol), MaxBond_(maxdim)
+        FEAST(MPO<MKL_Complex16> const & op, std::vector<MPS<MKL_Complex16>> const & s, double tol, int maxdim)
+        : Vm_(s),ham_(op), tol_(tol), MaxBond_(maxdim)
         {
-            Vm_.push_back(s);
+            
         }
         ~FEAST() = default;
 
@@ -614,10 +609,11 @@ namespace KylinVib
             double r0 = (Emax - Emin) / 2.0, z0 = (Emax + Emin) / 2.0;
             double zj[8] = {-0.96028986, -0.79666648, -0.52553241, -0.18343464, 0.18343464, 0.52553241, 0.79666648, 0.96028986};
             MKL_Complex16 cpi(0,3.141592535*2.0);
-            for(int mac=0;mac<50;++mac)
+            for(int mac=0;mac<1;++mac)
             {
                 std::cout << "Macro Iteration " << mac+1 << std::endl;
                 int Nm = Vm_.size();
+                std::vector<MPS<MKL_Complex16>> VTmp(8*Nm);
                 for(int i=0;i<Nm;++i)
                 {
                     for(int node=0;node<8;++node)
@@ -627,19 +623,19 @@ namespace KylinVib
                         //MKL_Complex16 znode(Emin+node*r0/4,0.0);
                         std::cout << "Eta = " << znode << std::endl;
                         DMRG dnode(ham_,Vm_[i],tol_,MaxBond_);
-                        dnode.two_site_SI(znode,1,5);
-                        dnode.one_site_SI(znode,10,5);
-                        Vm_.push_back(dnode.get_mps());
+                        dnode.two_site_SI(znode,5,5);
+                        dnode.one_site_SI(znode,5,5);
+                        VTmp[i*8+node] = dnode.get_mps();
                     }
                 }
-                Nm = Vm_.size();
+                Nm = VTmp.size();
                 Dense<MKL_Complex16,2> Hm({Nm,Nm}), Sm({Nm,Nm});
                 for(int i=0;i<Nm;++i)
                 {
                     for(int j=i;j<Nm;++j)
                     {
-                        Hm({i,j}) = ham_.join(Vm_[i],Vm_[j]);
-                        Sm({i,j}) = Vm_[i].overlap(Vm_[j]);
+                        Hm({i,j}) = ham_.join(VTmp[i],VTmp[j]);
+                        Sm({i,j}) = VTmp[i].overlap(VTmp[j]);
                         Hm({j,i}) = std::conj(Hm({i,j}));
                         Sm({j,i}) = std::conj(Sm({i,j}));
                     }
@@ -654,16 +650,8 @@ namespace KylinVib
                 Dense<MKL_Complex16,2> Hog = prod<MKL_Complex16,2,2,1>(Hm,XSm,{1},{0});
                 Hog = prod<MKL_Complex16,2,2,1>(conj<MKL_Complex16>(XSm),Hog,{0},{0});
 
-                ////Dense<MKL_Complex16,2> Sog = prod<MKL_Complex16,2,2,1>(Sm,XSm,{1},{0});
-                ////Sog = prod<MKL_Complex16,2,2,1>(conj<MKL_Complex16>(XSm),Sog,{0},{0});
-                ////Sog.print();
-
                 Dense<MKL_Complex16,2> EigHog = eig<MKL_Complex16>(Hog);
                 Dense<MKL_Complex16,2> RealEvc = prod<MKL_Complex16,2,2,1>(XSm,Hog,{1},{0});
-
-                ////Dense<MKL_Complex16,2> Sog = prod<MKL_Complex16,2,2,1>(Hm,RealEvc,{1},{0});
-                ////Sog = prod<MKL_Complex16,2,2,1>(conj<MKL_Complex16>(RealEvc),Sog,{0},{0});
-                ////Sog.print();
 
                 std::vector<MKL_Complex16> CurEne;
                 std::vector<MPS<MKL_Complex16>> inners;
@@ -674,29 +662,22 @@ namespace KylinVib
                         std::cout << "Energy " << i+1 << " : " << EigHog({i,i})
                         << std::endl;
                         CurEne.push_back(EigHog({i,i}));
-                        MPS<MKL_Complex16> ins = Vm_[0] * RealEvc({0,i});
+                        MPS<MKL_Complex16> ins = VTmp[0] * RealEvc({0,i});
                         for(int j=1;j<Nm;++j)
                         {
-                            ins += Vm_[j] * RealEvc({j,i});
+                            ins += VTmp[j] * RealEvc({j,i});
+                            ins.canon();
                         }
-                        ins.canon();
                         ins *= 1.0 / ins[0].norm();
-                        ////std::cout << "Norm = " << ins[0].norm() << std::endl;
-                        std::cout << "<|> = " << ham_.join(ins,ins) << std::endl;
                         std::vector<LabArr<MKL_Complex16,2>> inslabs = ins.dominant(0.1);
                         for(auto const & lab : inslabs)
                         {
                             lab.print_special(0.0);
                         }
                         inners.push_back(ins);
-                        for(int j=0;j<inners.size();++j)
-                        {
-                            std::cout << "Overlap:" << inners[j].overlap(ins) << std::endl;
-                        }
                     }
                 }
-                exit(1);
-                if( DMRG<MKL_Complex16>::check_conv(Ene,CurEne,0.1)=='y')
+                if( DMRG<MKL_Complex16>::check_conv(Ene,CurEne,0.01)=='y')
                 {
                     break;
                 }

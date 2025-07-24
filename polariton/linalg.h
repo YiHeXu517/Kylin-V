@@ -250,6 +250,110 @@ namespace KylinVib
     }
     return res;
   }
+  // basic QR decomposition
+  template<int N1, int N2>
+  static std::tuple<Dense<double,N1+1>,Dense<double,N2+1>> qr(Dense<double,N1+N2> & A)
+  {
+    int nrow = std::accumulate(A.shape().begin(),A.shape().begin()+N1,1,std::multiplies<int>());
+    int ncol = A.size() / nrow;
+    int ldu = std::min(nrow,ncol);
+    int ifqr1,ifqr2;
+    Dense<double,1> tau({ldu});
+    std::array<int,N1+1> lsp; std::copy(A.shape().begin(),A.shape().begin()+N1,lsp.begin());
+    std::array<int,N2+1> rsp; std::copy(A.shape().begin()+N1,A.shape().end(),rsp.begin()+1);
+    lsp[N1] = ldu; rsp[0] = ldu;
+    Dense<double,N1+1> Q(lsp); Dense<double,N2+1> R(rsp);
+    ifqr1 = LAPACKE_dgeqrf(LAPACK_ROW_MAJOR, nrow, ncol, A.ptr(), ncol, tau.ptr());
+    for(int i=0;i<ldu;++i)
+    {
+        for(int j=i;j<ncol;++j)
+        {
+            R.ptr()[i*ldu+j] = A.ptr()[i*ncol+j];
+        }
+    }
+    ifqr2 = LAPACKE_dorgqr(LAPACK_ROW_MAJOR, nrow, ldu, ldu, A.ptr(), ncol, tau.ptr());
+    if(ifqr2!=0 || ifqr1!=0) { std::cout << "Problems in QR! " << N1 << " : " << N2 << std::endl; std::exit(1);}
+    for(int i=0;i<ldu;++i) { cblas_dcopy(nrow, A.ptr()+i, ncol, Q.ptr()+i, ldu);}
+    return std::make_tuple(Q,R);
+  }
+  // basic QR decomposition
+  template<int N1, int N2>
+  static std::tuple<Dense<MKL_Complex16,N1+1>,Dense<MKL_Complex16,N2+1>> qr(Dense<MKL_Complex16,N1+N2> & A)
+  {
+    int nrow = std::accumulate(A.shape().begin(),A.shape().begin()+N1,1,std::multiplies<int>());
+    int ncol = A.size() / nrow;
+    int ldu = std::min(nrow,ncol);
+    int ifqr1,ifqr2;
+    Dense<MKL_Complex16,1> tau({ldu});
+    std::array<int,N1+1> lsp; std::copy(A.shape().begin(),A.shape().begin()+N1,lsp.begin());
+    std::array<int,N2+1> rsp; std::copy(A.shape().begin()+N1,A.shape().end(),rsp.begin()+1);
+    lsp[N1] = ldu; rsp[0] = ldu;
+    Dense<MKL_Complex16,N1+1> Q(lsp); Dense<MKL_Complex16,N2+1> R(rsp);
+    ifqr1 = LAPACKE_zgeqrf(LAPACK_ROW_MAJOR, nrow, ncol, A.ptr(), ncol, tau.ptr());
+    for(int i=0;i<ldu;++i)
+    {
+        for(int j=i;j<ncol;++j)
+        {
+            R.ptr()[i*ldu+j] = A.ptr()[i*ncol+j];
+        }
+    }
+    ifqr2 = LAPACKE_zungqr(LAPACK_ROW_MAJOR, nrow, ldu, ldu, A.ptr(), ncol, tau.ptr());
+    if(ifqr2!=0 || ifqr1!=0) { std::cout << "Problems in QR! " << N1 << " : " << N2 << std::endl; std::exit(1);}
+    for(int i=0;i<ldu;++i) { cblas_zcopy(nrow, A.ptr()+i, ncol, Q.ptr()+i, ldu);}
+    return std::make_tuple(Q,R);
+  }
+  // LQ decomposition
+  template<int N1, int N2>
+  static std::tuple<Dense<double,N1+1>,Dense<double,N2+1>> lq(Dense<double,N1+N2> & A)
+  {
+    int nrow = std::accumulate(A.shape().begin(),A.shape().begin()+N1,1,std::multiplies<int>());
+    int ncol = A.size() / nrow;
+    int ldu = std::min(nrow,ncol);
+    int ifqr1,ifqr2;
+    Dense<double,1> tau({ldu});
+    std::array<int,N1+1> lsp; std::copy(A.shape().begin(),A.shape().begin()+N1,lsp.begin());
+    std::array<int,N2+1> rsp; std::copy(A.shape().begin()+N1,A.shape().end(),rsp.begin()+1);
+    lsp[N1] = ldu; rsp[0] = ldu;
+    Dense<double,N1+1> R(lsp); Dense<double,N2+1> Q(rsp);
+    ifqr1 = LAPACKE_dgelqf(LAPACK_ROW_MAJOR, nrow, ncol, A.ptr(), ncol, tau.ptr());
+    for(int i=0;i<ldu;++i)
+    {
+        for(int j=i;j<nrow;++j)
+        {
+            R.ptr()[j*ldu+i] = A.ptr()[j*ncol+i];
+        }
+    }
+    ifqr2 = LAPACKE_dorglq(LAPACK_ROW_MAJOR, ldu, ncol, ldu, A.ptr(), ncol, tau.ptr());
+    if(ifqr2!=0 || ifqr1!=0) { std::cout << "Problems in LQ! " << N1 << " : " << N2 << std::endl; std::exit(1);}
+    cblas_dcopy(nrow*ncol, A.ptr(), 1, Q.ptr(), 1);
+    return std::make_tuple(R,Q);
+  }
+  // LQ decomposition
+  template<int N1, int N2>
+  static std::tuple<Dense<MKL_Complex16,N1+1>,Dense<MKL_Complex16,N2+1>> lq(Dense<MKL_Complex16,N1+N2> & A)
+  {
+    int nrow = std::accumulate(A.shape().begin(),A.shape().begin()+N1,1,std::multiplies<int>());
+    int ncol = A.size() / nrow;
+    int ldu = std::min(nrow,ncol);
+    int ifqr1,ifqr2;
+    Dense<MKL_Complex16,1> tau({ldu});
+    std::array<int,N1+1> lsp; std::copy(A.shape().begin(),A.shape().begin()+N1,lsp.begin());
+    std::array<int,N2+1> rsp; std::copy(A.shape().begin()+N1,A.shape().end(),rsp.begin()+1);
+    lsp[N1] = ldu; rsp[0] = ldu;
+    Dense<MKL_Complex16,N1+1> R(lsp); Dense<MKL_Complex16,N2+1> Q(rsp);
+    ifqr1 = LAPACKE_zgelqf(LAPACK_ROW_MAJOR, nrow, ncol, A.ptr(), ncol, tau.ptr());
+    for(int i=0;i<ldu;++i)
+    {
+        for(int j=i;j<nrow;++j)
+        {
+            R.ptr()[j*ldu+i] = A.ptr()[j*ncol+i];
+        }
+    }
+    ifqr2 = LAPACKE_zunglq(LAPACK_ROW_MAJOR, ldu, ncol, ldu, A.ptr(), ncol, tau.ptr());
+    if(ifqr2!=0 || ifqr1!=0) { std::cout << "Problems in LQ! " << N1 << " : " << N2 << std::endl; std::exit(1);}
+    cblas_zcopy(nrow*ncol, A.ptr(), 1, Q.ptr(), 1);
+    return std::make_tuple(R,Q);
+  }
   // svd return (u,s,vt)
   template<typename Type, int R1, int R2>
   std::tuple<Dense<Type,R1+1>,Dense<Type,R2+1>> svd(Dense<Type,R1+R2> & m, char l2r = 'r', double tol = 1e-14, int maxdim = 1000,
@@ -333,8 +437,19 @@ namespace KylinVib
     if(PrintErr=='y')
     {
         Dense<Type,R1+R2> Err = mc-prod<Type,R1+1,R2+1,1>(lef,rig,{R1},{0});
-        std::cout << "Err. of SVD = " << Err.norm() << std::endl;
-        ////Err.print();
+        double nErr = Err.norm();
+        if(nErr/mc.norm()>1e-4)
+        {
+          ////std::cout << "Err. of SVD = " << nErr << std::endl;
+          if(l2r=='r')
+          {
+            return qr<R1,R2>(mc);
+          }
+          else
+          {
+            return lq<R1,R2>(mc);
+          }
+        }
     }
     return std::make_tuple(lef,rig);
   }
@@ -359,7 +474,7 @@ namespace KylinVib
             s.ptr(), u.ptr(), ldu, vt.ptr(), ncol, sp.ptr());
     }
     ///s.print();
-    if(ifsv!=0) { std::cout << "Problems in SVDINV! " << std::endl; std::exit(1);}
+    ///if(ifsv!=0) { std::cout << "Problems in SVDINV! " << std::endl; std::exit(1);}
     for(int i=0;i<ldu;++i)
     {
         if(s.ptr()[i]<=1e-15)

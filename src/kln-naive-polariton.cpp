@@ -31,37 +31,38 @@ int main( int argc, char ** argv )
         LO[site] = latt.gen_lower(SiteDims,site);
         UO[site] = latt.gen_upper(SiteDims,site);
     }
-    MPS<MKL_Complex16> state0(nsite,SiteDims,10);
-    for(int mol=0;mol<Nmol;++mol)
+    int Nm0 = Nmol;
+
+    std::vector<MPS<MKL_Complex16>> state0;
+    for(int m=0;m<Nm0;++m)
     {
-        int ms = VibLabs[mol];
-        for(int j=0;j<state0[ms].size();++j)
+        state0.emplace_back(nsite,SiteDims,1);
+        for(int mol=0;mol<Nmol;++mol)
         {
-            if(j/state0[ms].dist()[1]%state0[ms].shape()[1]!=0)
+            for(int d=3;d<VibCut;++d)
             {
-                state0[ms].ptr()[j] = 0.0;
+                state0.back()[VibLabs[mol]]({0,d,0}) *= 0.0;
             }
         }
+        state0.back().canon();
+        state0.back()[0] *= 1.0/state0.back()[0].norm();
     }
-    state0.canon();
-    state0[0] *= 1.0/state0[0].norm();
+    
     std::vector<MKL_Complex16> Eg,Ee,Ef;
 
-    FEAST driver_g(ham,state0,1e-8,128);
-    double Emin = 1.5, Emax = 2.5;
+    FEAST driver_g(ham,state0,1e-8,64);
+    double Emin = 0, Emax = 0.5;
     driver_g.naive_impl(Emin,Emax,Eg);
     std::vector<MPS<MKL_Complex16>> Vmg = driver_g.get_mps();
     int Ntg = Vmg.size();
 
-    FEAST driver_e(ham,state0,1e-8,128);
+    FEAST driver_e(ham,state0,1e-8,64);
     Emin = 1.5, Emax = 2.5;
     driver_e.naive_impl(Emin,Emax,Ee);
     std::vector<MPS<MKL_Complex16>> Vme = driver_e.get_mps();
     int Nte = Vme.size();
 
-	exit(1);
-
-    FEAST driver_f(ham,state0,1e-8,128);
+    FEAST driver_f(ham,state0,1e-8,64);
     Emin = 3.5, Emax = 4.5;
     driver_f.naive_impl(Emin,Emax,Ef);
     std::vector<MPS<MKL_Complex16>> Vmf = driver_f.get_mps();
